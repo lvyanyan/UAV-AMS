@@ -1,0 +1,27 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: uav-airspace-controller
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: airspace-controller
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      max-poll-records: 500
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+airspace:
+  detection-interval-ms: 200
+  prediction-step-seconds: 1.0
+  prediction-steps: 60
+  conflict-min-distance-meters: 50.0
+  collision-probability-threshold: 0.3
+  resolution-min-priority: 30
+  h3-resolution: 9
+  state-expire-seconds: 10
+  uncertainty-growth-rate-mps: 2.0

@@ -1,0 +1,25 @@
+2026/06/13 01:05:57 ========================================
+2026/06/13 01:05:58   UAV Realtime Service                   
+2026/06/13 01:05:58   MQTT -> Kafka + WebSocket Bridge       
+2026/06/13 01:05:58 ========================================
+2026/06/13 01:05:58 [MQTT] Connected to broker: tcp://localhost:1883
+2026/06/13 01:05:58 [Kafka] MQTT->Kafka bridge ready, topic: uav.telemetry
+2026/06/13 01:05:58 [WS] Listening on :8090/ws
+2026/06/13 01:05:58 [Kafka] Alarm->WS consumer started
+2026/06/13 01:05:58 [Kafka-Consumer] Listening on topic: uav.ops-seat.resolution
+2026/06/13 01:05:58 [Kafka-Consumer] Listening on topic: uav.conflict.alert
+2026/06/13 01:05:58 [Kafka-Consumer] Listening on topic: uav.alarm.event
+2026/06/13 01:05:58 [Kafka-Consumer] Listening on topic: uav.signboard.conflict
+2026/06/13 01:05:58 [Kafka-Consumer] Listening on topic: uav.signboard.resolution
+2026/06/13 01:05:58 [MQTT] Subscribed to: uav/+/telemetry
+2026/06/13 01:05:59 [WS] Client connected: [::1]:61776 (total: 1)
+2026/06/13 01:06:01 [WS] Client disconnected: [::1]:61776
+2026/06/13 01:06:04 [WS] Client connected: [::1]:50294 (total: 1)
+2026/06/13 01:12:20 [WS] Client disconnected: [::1]:50294
+2026/06/13 01:12:22 [WS] Client connected: [::1]:49348 (total: 1)
+2026/06/13 01:21:16 [WS] Client disconnected: [::1]:49348
+2026/06/13 01:21:17 [WS] Client connected: [::1]:58192 (total: 1)
+2026/06/13 01:22:19 [WS] Client disconnected: [::1]:58192
+2026/06/13 01:22:20 [WS] Client connected: [::1]:56029 (total: 1)
+2026/06/13 01:24:05 [WS] Client disconnected: [::1]:56029
+2026/06/13 01:24:06 [WS] Client connected: [::1]:62707 (total: 1)

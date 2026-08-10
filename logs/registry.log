@@ -1,0 +1,27 @@
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.0)
+
+2026-06-13T01:06:01.685+08:00  INFO 20908 --- [uav-registry] [           main] com.uav.registry.RegistryApplication     : Starting RegistryApplication v1.0.0-SNAPSHOT using Java 17.0.19 with PID 20908 (D:\dronesManager\uav-registry\target\uav-registry-1.0.0-SNAPSHOT.jar started by Administrator in d:\dronesManager)
+2026-06-13T01:06:01.700+08:00 DEBUG 20908 --- [uav-registry] [           main] com.uav.registry.RegistryApplication     : Running with Spring Boot v3.2.0, Spring v6.1.1
+2026-06-13T01:06:01.703+08:00  INFO 20908 --- [uav-registry] [           main] com.uav.registry.RegistryApplication     : No active profile set, falling back to 1 default profile: "default"
+2026-06-13T01:06:08.030+08:00  INFO 20908 --- [uav-registry] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8086 (http)
+2026-06-13T01:06:08.059+08:00  INFO 20908 --- [uav-registry] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-13T01:06:08.064+08:00  INFO 20908 --- [uav-registry] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.16]
+2026-06-13T01:06:08.284+08:00  INFO 20908 --- [uav-registry] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-06-13T01:06:08.289+08:00  INFO 20908 --- [uav-registry] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 6353 ms
+ _ _   |_  _ _|_. ___ _ |    _ 
+| | |\/|_)(_| | |_\  |_)||_|_\ 
+     /               |         
+                        3.5.5 
+2026-06-13T01:06:13.689+08:00  INFO 20908 --- [uav-registry] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8086 (http) with context path ''
+2026-06-13T01:06:13.719+08:00  INFO 20908 --- [uav-registry] [           main] com.uav.registry.RegistryApplication     : Started RegistryApplication in 14.563 seconds (process running for 16.099)
+========================================
+  UAV Registry (ÊµÃûµÇ¼Ç) started.      
+  Port: 8086                            
+========================================

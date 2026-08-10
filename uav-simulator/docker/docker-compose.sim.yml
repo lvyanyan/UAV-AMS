@@ -1,0 +1,39 @@
+# docker-compose 集成运行（含 EMQX + 仿真器）
+# 使用: docker-compose -f docker/docker-compose.sim.yml up -d
+
+version: '3.8'
+
+services:
+  # ---- EMQX MQTT Broker ----
+  emqx:
+    image: emqx/emqx:5.6.1
+    container_name: uav-emqx
+    ports:
+      - "1883:1883"       # MQTT
+      - "8083:8083"       # WebSocket
+      - "18083:18083"     # Dashboard
+    environment:
+      - EMQX_NAME=uav-emqx
+      - EMQX_HOST=emqx
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "emqx", "ctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---- 无人机仿真器 ----
+  uav-simulator:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    container_name: uav-simulator
+    depends_on:
+      emqx:
+        condition: service_healthy
+    environment:
+      - MQTT_BROKER=tcp://emqx:1883
+    restart: unless-stopped
+    # 如果需要自定义配置，挂载:
+    # volumes:
+    #   - ./config/default.yaml:/app/config/default.yaml

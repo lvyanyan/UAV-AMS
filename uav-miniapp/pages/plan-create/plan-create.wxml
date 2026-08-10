@@ -1,0 +1,9 @@
+<view class="container">
+  <view class="header">📝 新建飞行计划</view>
+  <view class="form">
+    <input class="input" placeholder="飞行区域" value="{{area}}" bindinput="onArea" />
+    <picker mode="date" value="{{date}}" bindchange="onDate"><view class="picker">{{date||'选择日期'}}</view></picker>
+    <input class="input" placeholder="最大高度(m)" type="number" value="{{altitude}}" bindinput="onAltitude" />
+    <button class="btn" bindtap="submit">提交计划</button>
+  </view>
+</view>

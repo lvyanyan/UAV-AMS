@@ -1,0 +1,8 @@
+<view class="container">
+  <view class="logo">🚁 无人机管控平台</view>
+  <view class="form">
+    <input class="input" placeholder="用户名" bindinput="onUsername" value="{{username}}" />
+    <input class="input" type="password" placeholder="密码" bindinput="onPassword" value="{{password}}" />
+    <button class="btn" bindtap="doLogin">登 录</button>
+  </view>
+</view>

@@ -1,0 +1,5 @@
+<view class="container">
+  <view class="header">📹 图传视频</view>
+  <video src="http://localhost:8080/live/stream.flv" style="width:100%;height:50vh" />
+  <button size="mini" bindtap="snap">📸 截图</button>
+</view>

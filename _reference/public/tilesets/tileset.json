@@ -1,0 +1,30 @@
+{
+  "asset": {
+    "version": "1.0",
+    "gltfUpAxis": "Z"
+  },
+  "geometricError": 500,
+  "root": {
+    "boundingVolume": {
+      "box": [
+        -50,
+        -150,
+        250,
+        2450,
+        0,
+        0,
+        0,
+        2550,
+        0,
+        0,
+        0,
+        250
+      ]
+    },
+    "geometricError": 100,
+    "refine": "REPLACE",
+    "content": {
+      "uri": "tile.b3dm"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+{
+    "code": 0,
+    "message": "ok",
+    "data": {
+        "packetIndex": 0,
+        "startTime": 270,
+        "endTime": 271,
+        "data_list": [
+            {
+                "uniqueid": "TRAJ0266ENR51T086H27",
+                "timems": 1779350670502,
+                "longitude": 115.946434,
+                "latitude": 38.924306,
+                "height": 321.4,
+                "speed": 0.03112,
+                "speedOfPitch": 0.000275,
+                "speedOfYaw": 0,
+                "traceType": 0,
+                "device_sn": "DJI1M300PRO400000006",
+                "source": "FUSION"
+            }
+        ],
+        "alarms": [
+            {
+                "alarmId": "1f7b1310-59da-4c0b-8a91-30448febe48c",
+                "droneId": "DJI1M300PRO400000006",
+                "alarmType": "黑飞告警",
+                "alarmLevel": "严重告警",
+                "alarmStage": 1,
+                "startTime": 270,
+                "endTime": 870,
+                "reason": "侦测到无飞行计划无人机:DJI1M300PRO400000006 不合法性 legality=3",
+                "handleType": "施加黑飞管制"
+            }
+        ],
+        "time_airspaces": [],
+        "time_routes": [],
+        "weather": null,
+        "flight_plans": []
+    }
+}

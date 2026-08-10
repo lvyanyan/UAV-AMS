@@ -1,0 +1,31 @@
+# Java
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Go
+*.exe
+uav-realtime/uav-realtime
+uav-simulator/uav-simulator
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Docker volumes
+docker/volumes/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local

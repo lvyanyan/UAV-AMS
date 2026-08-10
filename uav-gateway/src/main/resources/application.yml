@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: uav-gateway
+  cloud:
+    gateway:
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Origin
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+      routes:
+        - id: uav-system
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**,/api/user/**,/api/role/**,/api/permission/**,/api/audit/**
+        - id: uav-registry
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/registry/**
+        - id: uav-pilot
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/pilot/**
+        - id: uav-flight-plan
+          uri: http://localhost:8088
+          predicates:
+            - Path=/api/flight-plan/**
+        - id: uav-alarm-engine
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/alarm/**
+        - id: uav-risk-assessment
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/risk/**
+        - id: uav-airspace-controller
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/airspace-control/**
+        - id: uav-airspace
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/airspace/**
+        - id: uav-track-fusion
+          uri: http://localhost:8089
+          predicates:
+            - Path=/api/track/**
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

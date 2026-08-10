@@ -1,0 +1,31 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/index/index",
+    "pages/plan-list/plan-list",
+    "pages/plan-detail/plan-detail",
+    "pages/plan-create/plan-create",
+    "pages/monitor/monitor",
+    "pages/notify/notify",
+    "pages/profile/profile",
+    "pages/video/video"
+  ],
+  "window": {
+    "navigationBarTitleText": "无人机管控",
+    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarTextStyle": "white"
+  },
+  "tabBar": {
+    "color": "#999",
+    "selectedColor": "#409eff",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "首页", "iconPath": "static/tab/home.png", "selectedIconPath": "static/tab/home-active.png" },
+      { "pagePath": "pages/plan-list/plan-list", "text": "计划", "iconPath": "static/tab/plan.png", "selectedIconPath": "static/tab/plan-active.png" },
+      { "pagePath": "pages/monitor/monitor", "text": "监控", "iconPath": "static/tab/monitor.png", "selectedIconPath": "static/tab/monitor-active.png" },
+      { "pagePath": "pages/profile/profile", "text": "我的", "iconPath": "static/tab/user.png", "selectedIconPath": "static/tab/user-active.png" }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": { "desc": "用于展示无人机实时位置" }
+  }
+}

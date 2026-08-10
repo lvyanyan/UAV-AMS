@@ -1,0 +1,4 @@
+<view class="container">
+  <view class="header">计划详情</view>
+  <view class="card"><text>计划编号: {{plan.planNo}}</text><text>状态: {{plan.planStatus}}</text></view>
+</view>

@@ -1,0 +1,4 @@
+<view class="container">
+  <view class="header">🔔 通知中心</view>
+  <view wx:for="{{list}}" wx:key="id" class="item"><text>{{item.title}}</text><text class="time">{{item.time}}</text></view>
+</view>

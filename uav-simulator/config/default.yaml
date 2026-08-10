@@ -1,0 +1,82 @@
+# =============================================================================
+# 无人机仿真系统 默认配置
+# =============================================================================
+
+# ---- MQTT Broker 连接 ----
+mqtt:
+  broker: "tcp://127.0.0.1:1883"    # EMQX Broker 地址
+  client_id: "uav-simulator"
+  username: ""                        # 如需认证在此填写
+  password: ""
+  qos: 1                              # QoS 1 (至少一次)
+  retained: false
+
+# ---- 仿真参数 ----
+simulation:
+  tick_interval_ms: 200               # 仿真时钟间隔 (毫秒)
+  telemetry_rate_hz: 5.0              # 遥测发布频率 (Hz)
+  heartbeat_interval_sec: 5           # 心跳间隔 (秒)
+  batch_size: 100                     # 批量创建数量
+  enable_violations: true             # 是否启用违规模拟
+  violation_prob: 0.02                # 违规概率 (~2%/秒/无人机)
+  random_seed: 42                     # 随机种子 (相同种子产生相同行为)
+
+# ---- 场景配置 ----
+scenarios:
+  # 百万级压力测试场景
+  - name: "百万级压力测试"
+    enabled: true
+    drone_count: 10000                # ← 1万架！
+    model_prefix: "STRESS"            # SN 前缀
+    center_lat: 39.9042               # 场景中心 (北京)
+    center_lon: 116.4074
+    radius_km: 80.0                   # 活动半径 80km（分散开）
+    min_alt_m: 50.0                   # 最低飞行高度
+    max_alt_m: 300.0                  # 最高飞行高度
+    min_speed_ms: 5.0                 # 最低速度
+    max_speed_ms: 25.0                # 最高速度
+    max_flight_min: 60                # 最长飞行时间
+    min_flight_min: 10                # 最短飞行时间
+    drone_models:
+      - "DJI-M350"
+      - "DJI-M300"
+      - "DJI-M30T"
+      - "DJI-MAVIC3"
+      - "CUSTOM-C300"
+
+  # 物流配送 (关闭)
+  - name: "物流配送"
+    enabled: false
+    drone_count: 30
+    model_prefix: "LOGISTICS"
+    center_lat: 39.9142
+    center_lon: 116.4174
+    radius_km: 15.0
+    min_alt_m: 80.0
+    max_alt_m: 200.0
+    min_speed_ms: 10.0
+    max_speed_ms: 25.0
+    max_flight_min: 20
+    min_flight_min: 5
+    drone_models:
+      - "DJI-FLYCART30"
+      - "CUSTOM-C300"
+
+  # 航拍摄影 (关闭)
+  - name: "航拍摄影"
+    enabled: false
+    drone_count: 20
+    model_prefix: "AERIAL"
+    center_lat: 39.8942
+    center_lon: 116.3874
+    radius_km: 5.0
+    min_alt_m: 30.0
+    max_alt_m: 300.0
+    min_speed_ms: 3.0
+    max_speed_ms: 12.0
+    max_flight_min: 25
+    min_flight_min: 15
+    drone_models:
+      - "DJI-MAVIC3"
+      - "DJI-MINI4P"
+      - "DJI-AIR3S"

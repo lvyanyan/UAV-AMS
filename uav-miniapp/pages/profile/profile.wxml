@@ -1,0 +1,7 @@
+<view class="container">
+  <view class="header">👤 个人中心</view>
+  <view class="card"><text>姓名: {{user.name}}</text><text>执照号: {{user.licenseNo}}</text></view>
+  <navigator url="/pages/video/video" class="btn outline">📹 图传查看</navigator>
+  <button class="btn" bindtap="uploadMedical">📋 上传体检报告</button>
+  <button class="btn danger" bindtap="logout">退出登录</button>
+</view>

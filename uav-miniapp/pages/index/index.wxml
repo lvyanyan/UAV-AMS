@@ -1,0 +1,14 @@
+<view class="container">
+  <view class="header">📊 运营概览</view>
+  <view class="grid">
+    <view class="card"><text class="num">{{stats.online}}</text><text class="label">在线无人机</text></view>
+    <view class="card"><text class="num warn">{{stats.alarms}}</text><text class="label">活跃告警</text></view>
+    <view class="card"><text class="num">{{stats.plans}}</text><text class="label">今日计划</text></view>
+    <view class="card"><text class="num">{{stats.violations}}</text><text class="label">待处理违规</text></view>
+  </view>
+  <view class="section">
+    <navigator url="/pages/plan-create/plan-create" class="btn">📋 新建飞行计划</navigator>
+    <navigator url="/pages/monitor/monitor" class="btn outline">🛰️ 实时监控</navigator>
+    <navigator url="/pages/notify/notify" class="btn outline">🔔 通知中心</navigator>
+  </view>
+</view>

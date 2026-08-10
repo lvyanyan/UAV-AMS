@@ -1,0 +1,33 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: uav-risk-assessment
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    database: 0
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:uav_ams}
+    username: ${DB_USER:uav}
+    password: ${DB_PASS:uav123}
+    driver-class-name: org.postgresql.Driver
+
+# 气象数据源配置
+weather:
+  open-meteo:
+    base-url: https://api.open-meteo.com
+    enabled: true
+
+# 安全阈值
+risk:
+  thresholds:
+    max-wind: 12.0           # m/s
+    min-visibility: 2000     # m
+    airport-no-fly-radius: 5000  # m
+    max-altitude: 500        # m
+
+logging:
+  level:
+    com.uav.risk: DEBUG

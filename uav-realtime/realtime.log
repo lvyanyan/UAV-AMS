@@ -1,0 +1,45 @@
+2026/06/12 23:19:42 ========================================
+2026/06/12 23:19:42   UAV Realtime Service                   
+2026/06/12 23:19:42   MQTT -> Kafka + WebSocket Bridge       
+2026/06/12 23:19:42 ========================================
+2026/06/12 23:19:42 [MQTT] Connected to broker: tcp://localhost:1883
+2026/06/12 23:19:42 [Kafka] MQTT->Kafka bridge ready, topic: uav.telemetry
+2026/06/12 23:19:42 [WS] Listening on :8090/ws
+2026/06/12 23:19:42 [Kafka] Alarm->WS consumer started
+2026/06/12 23:19:42 [Kafka-Consumer] Listening on topic: uav.ops-seat.resolution
+2026/06/12 23:19:42 [Kafka-Consumer] Listening on topic: uav.alarm.event
+2026/06/12 23:19:42 [Kafka-Consumer] Listening on topic: uav.conflict.alert
+2026/06/12 23:19:42 [Kafka-Consumer] Listening on topic: uav.signboard.conflict
+2026/06/12 23:19:42 [Kafka-Consumer] Listening on topic: uav.signboard.resolution
+2026/06/12 23:19:42 [WS] Server error: listen tcp :8090: bind: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+2026/06/12 23:19:42 [MQTT] Subscribed to: uav/+/telemetry
+2026/06/12 23:22:36 [Kafka-Consumer] Read error on uav.signboard.conflict: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:36 [Kafka-Consumer] Read error on uav.conflict.alert: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:36 [Kafka-Consumer] Read error on uav.alarm.event: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:36 [Kafka-Consumer] Read error on uav.signboard.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:36 [Kafka-Consumer] Read error on uav.ops-seat.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:47 [Kafka-Consumer] Read error on uav.signboard.conflict: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:47 [Kafka-Consumer] Read error on uav.signboard.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:47 [Kafka-Consumer] Read error on uav.alarm.event: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:47 [Kafka-Consumer] Read error on uav.ops-seat.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:22:47 [Kafka-Consumer] Read error on uav.conflict.alert: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:23:02 [Kafka-Consumer] Read error on uav.alarm.event: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:23:02 [Kafka-Consumer] Read error on uav.ops-seat.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:23:02 [Kafka-Consumer] Read error on uav.signboard.conflict: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:23:02 [Kafka-Consumer] Read error on uav.signboard.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:23:02 [Kafka-Consumer] Read error on uav.conflict.alert: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:23:17 [Kafka-Consumer] Read error on uav.ops-seat.resolution: fetching message: EOF
+2026/06/12 23:23:17 [Kafka-Consumer] Read error on uav.signboard.conflict: fetching message: EOF
+2026/06/12 23:23:17 [Kafka-Consumer] Read error on uav.alarm.event: fetching message: EOF
+2026/06/12 23:23:17 [Kafka-Consumer] Read error on uav.signboard.resolution: fetching message: EOF
+2026/06/12 23:23:17 [Kafka-Consumer] Read error on uav.conflict.alert: fetching message: EOF
+2026/06/12 23:27:49 [Kafka-Consumer] Read error on uav.conflict.alert: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:49 [Kafka-Consumer] Read error on uav.signboard.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:49 [Kafka-Consumer] Read error on uav.alarm.event: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:49 [Kafka-Consumer] Read error on uav.ops-seat.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:49 [Kafka-Consumer] Read error on uav.signboard.conflict: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:50 [Kafka-Consumer] Read error on uav.signboard.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:50 [Kafka-Consumer] Read error on uav.alarm.event: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:50 [Kafka-Consumer] Read error on uav.ops-seat.resolution: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:50 [Kafka-Consumer] Read error on uav.signboard.conflict: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.
+2026/06/12 23:27:50 [Kafka-Consumer] Read error on uav.conflict.alert: fetching message: failed to dial: failed to open connection to localhost:9092: dial tcp [::1]:9092: connectex: No connection could be made because the target machine actively refused it.

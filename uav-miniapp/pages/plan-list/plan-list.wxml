@@ -1,0 +1,15 @@
+<view class="container">
+  <view class="header">📋 飞行计划</view>
+  <view class="tabs">
+    <text class="{{filter==='ALL'?'active':''}}" bindtap="setFilter" data-f="ALL">全部</text>
+    <text class="{{filter==='PENDING'?'active':''}}" bindtap="setFilter" data-f="PENDING">审批中</text>
+    <text class="{{filter==='APPROVED'?'active':''}}" bindtap="setFilter" data-f="APPROVED">已批准</text>
+  </view>
+  <view wx:for="{{plans}}" wx:key="id" class="plan-card">
+    <view class="plan-header">
+      <text>{{item.planNo}}</text>
+      <text class="status">{{item.planStatus}}</text>
+    </view>
+    <navigator url="/pages/plan-detail/plan-detail?id={{item.id}}">查看详情 →</navigator>
+  </view>
+</view>

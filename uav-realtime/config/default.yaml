@@ -1,0 +1,22 @@
+# UAV Realtime Service 配置
+mqtt:
+  broker: tcp://localhost:1883
+  client_id: uav-realtime
+  username: ""
+  password: ""
+  qos: 1
+
+websocket:
+  port: 8090
+  path: /ws
+  origins: "*"
+
+kafka:
+  brokers:
+    - localhost:9092
+  topic: uav.telemetry
+
+redis:
+  addr: localhost:6379
+  password: ""
+  db: 0
