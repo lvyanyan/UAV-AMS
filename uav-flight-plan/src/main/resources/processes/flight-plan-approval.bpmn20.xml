@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://flowable.org/bpmn"
+             typeLanguage="http://www.w3.org/2001/XMLSchema"
+             expressionLanguage="http://www.w3.org/1999/XPath">
+
+    <!--
+      飞行计划多级审批流程（替代原控制器内硬编码状态机）
+      DRAFT --submit--> 一级审核 --> 二级审核 --> 三级审核 --> APPROVED
+                          └─ 任意节点 approved=false → REJECTED
+      流程变量：planId(String, businessKey) / planCode / riskLevel / approved / lastLevel
+    -->
+    <process id="flightPlanApproval" name="飞行计划多级审批" isExecutable="true">
+
+        <startEvent id="start" name="提交计划"/>
+
+        <sequenceFlow id="f0" sourceRef="start" targetRef="taskL1"/>
+
+        <userTask id="taskL1" name="一级审核" flowable:category="1" flowable:candidateGroups="uav-approver">
+            <extensionElements>
+                <flowable:taskListener event="create" delegateExpression="${planStatusSyncListener}"/>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="f1" sourceRef="taskL1" targetRef="gw1"/>
+
+        <exclusiveGateway id="gw1" name="一级审核结论"/>
+        <sequenceFlow id="f2" sourceRef="gw1" targetRef="taskL2">
+            <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="f3" sourceRef="gw1" targetRef="finalizeReject">
+            <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+        </sequenceFlow>
+
+        <userTask id="taskL2" name="二级审核" flowable:category="2" flowable:candidateGroups="uav-approver">
+            <extensionElements>
+                <flowable:taskListener event="create" delegateExpression="${planStatusSyncListener}"/>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="f4" sourceRef="taskL2" targetRef="gw2"/>
+
+        <exclusiveGateway id="gw2" name="二级审核结论"/>
+        <sequenceFlow id="f5" sourceRef="gw2" targetRef="taskL3">
+            <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="f6" sourceRef="gw2" targetRef="finalizeReject">
+            <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+        </sequenceFlow>
+
+        <userTask id="taskL3" name="三级审核" flowable:category="3" flowable:candidateGroups="uav-approver">
+            <extensionElements>
+                <flowable:taskListener event="create" delegateExpression="${planStatusSyncListener}"/>
+            </extensionElements>
+        </userTask>
+        <sequenceFlow id="f7" sourceRef="taskL3" targetRef="gw3"/>
+
+        <exclusiveGateway id="gw3" name="三级审核结论"/>
+        <sequenceFlow id="f8" sourceRef="gw3" targetRef="finalizeApprove">
+            <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+        </sequenceFlow>
+        <sequenceFlow id="f9" sourceRef="gw3" targetRef="finalizeReject">
+            <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+        </sequenceFlow>
+
+        <serviceTask id="finalizeApprove" name="批准落库"
+                     flowable:delegateExpression="${finalizeApproveDelegate}"/>
+        <sequenceFlow id="f10" sourceRef="finalizeApprove" targetRef="endApproved"/>
+
+        <serviceTask id="finalizeReject" name="驳回落库"
+                     flowable:delegateExpression="${finalizeRejectDelegate}"/>
+        <sequenceFlow id="f11" sourceRef="finalizeReject" targetRef="endRejected"/>
+
+        <endEvent id="endApproved" name="已批准"/>
+        <endEvent id="endRejected" name="已驳回"/>
+    </process>
+</definitions>

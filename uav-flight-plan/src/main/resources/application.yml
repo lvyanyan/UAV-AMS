@@ -14,6 +14,12 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+flowable:
+  # 首次启动自动建 ACT_ 表；升级时按 Flowable 官方升级流程处理
+  database-schema-update: true
+  # 审批任务为同步人工节点，不启用异步执行器
+  async-executor-activate: false
+
 logging:
   level:
     com.uav.flightplan: DEBUG

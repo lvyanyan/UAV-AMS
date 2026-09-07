@@ -3,6 +3,7 @@ package com.uav.flightplan.controller;
 import com.uav.common.base.R;
 import com.uav.flightplan.entity.FlightPlan;
 import com.uav.flightplan.entity.FlightPlanApproval;
+import com.uav.flightplan.service.FlightPlanProcessService;
 import com.uav.flightplan.service.FlightPlanService;
 import com.uav.flightplan.service.FlightPlanApprovalService;
 import jakarta.validation.Valid;
@@ -15,10 +16,14 @@ public class FlightPlanController {
 
     private final FlightPlanService planService;
     private final FlightPlanApprovalService approvalService;
+    private final FlightPlanProcessService processService;
 
-    public FlightPlanController(FlightPlanService planService, FlightPlanApprovalService approvalService) {
+    public FlightPlanController(FlightPlanService planService,
+                                FlightPlanApprovalService approvalService,
+                                FlightPlanProcessService processService) {
         this.planService = planService;
         this.approvalService = approvalService;
+        this.processService = processService;
     }
 
     // ===== 计划 CRUD =====
@@ -52,13 +57,16 @@ public class FlightPlanController {
         return R.ok(planService.getById(id));
     }
 
-    // ===== 多级审批状态机 =====
+    // ===== 多级审批（Flowable BPMN 驱动） =====
+    // 流程定义: processes/flight-plan-approval.bpmn20.xml
     // DRAFT → PENDING_LEVEL1 → PENDING_LEVEL2 → PENDING_LEVEL3 → APPROVED
-    // 任意阶段可 REJECTED; 军民协调员可 ONE_CLICK_APPROVED
+    // 任意阶段可 REJECTED; 军民协调员可 ONE_CLICK_APPROVED（终止在途流程直批）
 
     @PutMapping("/{id}/submit")
     public R<FlightPlan> submit(@PathVariable Long id) {
-        return R.ok(planService.submit(id));
+        FlightPlan plan = planService.submit(id);
+        if (plan != null) processService.startApproval(plan);
+        return R.ok(plan);
     }
 
     @PutMapping("/{id}/approve")
@@ -67,36 +75,7 @@ public class FlightPlanController {
                                   @RequestParam(required = false) String comment) {
         FlightPlan plan = planService.getById(id);
         if (plan == null) return R.fail("计划不存在");
-
-        String currentStatus = plan.getPlanStatus();
-        String nextStatus;
-        int approvalLevel;
-
-        if ("PENDING_LEVEL1".equals(currentStatus)) {
-            nextStatus = "PENDING_LEVEL2";
-            approvalLevel = 1;
-        } else if ("PENDING_LEVEL2".equals(currentStatus)) {
-            nextStatus = "PENDING_LEVEL3";
-            approvalLevel = 2;
-        } else if ("PENDING_LEVEL3".equals(currentStatus)) {
-            nextStatus = "APPROVED";
-            approvalLevel = 3;
-        } else {
-            return R.fail("当前状态不可审批: " + currentStatus);
-        }
-
-        plan.setPlanStatus(nextStatus);
-        planService.updateById(plan);
-
-        FlightPlanApproval approval = new FlightPlanApproval();
-        approval.setPlanId(id);
-        approval.setApproverId(approverId);
-        approval.setApprovalLevel(approvalLevel);
-        approval.setResult("APPROVED");
-        approval.setComment(comment);
-        approvalService.save(approval);
-
-        return R.ok(plan);
+        return R.ok(processService.approve(id, approverId, comment));
     }
 
     @PutMapping("/{id}/reject")
@@ -105,19 +84,7 @@ public class FlightPlanController {
                                  @RequestParam String comment) {
         FlightPlan plan = planService.getById(id);
         if (plan == null) return R.fail("计划不存在");
-
-        plan.setPlanStatus("REJECTED");
-        planService.updateById(plan);
-
-        FlightPlanApproval approval = new FlightPlanApproval();
-        approval.setPlanId(id);
-        approval.setApproverId(approverId);
-        approval.setApprovalLevel(0);
-        approval.setResult("REJECTED");
-        approval.setComment(comment);
-        approvalService.save(approval);
-
-        return R.ok(plan);
+        return R.ok(processService.reject(id, approverId, comment));
     }
 
     // ===== 军民协调：一键批准（跳过全部审批链） =====
@@ -127,6 +94,7 @@ public class FlightPlanController {
         FlightPlan plan = planService.getById(id);
         if (plan == null) return R.fail("计划不存在");
 
+        processService.terminateProcess(id, "军事调度一键批准");
         plan.setPlanStatus("APPROVED");
         plan.setMilitaryApproved(true);
         plan.setMilitaryApprovalId(militaryApproverId);
@@ -150,6 +118,7 @@ public class FlightPlanController {
         FlightPlan plan = planService.getById(id);
         if (plan == null) return R.fail("计划不存在");
 
+        processService.terminateProcess(id, "军事协调撤销: " + reason);
         plan.setPlanStatus("MILITARY_CANCELLED");
         plan.setMilitaryApproved(false);
         plan.setMilitaryApprovalId(militaryApproverId);
