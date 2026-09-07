@@ -50,8 +50,9 @@ public class CepAlarmJob {
 
         // 本地运行时使用 WebUI 8081；集群提交时该配置被 JobManager 忽略
         Configuration conf = new Configuration();
-        conf.setInteger("rest.port", 8081);
+        conf.setInteger("rest.port", 8481);
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(conf);
+        env.setParallelism(4);
         env.enableCheckpointing(10_000);
 
         KafkaSource<String> source = KafkaSource.<String>builder()
