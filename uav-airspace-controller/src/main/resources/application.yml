@@ -25,3 +25,5 @@ airspace:
   h3-resolution: 9
   state-expire-seconds: 10
   uncertainty-growth-rate-mps: 2.0
+  capacity-max-drones-per-cell: 8
+  capacity-alarm-enabled: true

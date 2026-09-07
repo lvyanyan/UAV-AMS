@@ -1,6 +1,7 @@
 package com.uav.airspace.kafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.uav.airspace.grid.H3GridService;
 import com.uav.airspace.state.DroneStateSnapshot;
 import com.uav.airspace.state.DroneStateStore;
 import com.uav.common.dto.TelemetryDTO;
@@ -20,10 +21,12 @@ import org.springframework.stereotype.Component;
 public class TelemetryConsumer {
 
     private final DroneStateStore stateStore;
+    private final H3GridService h3GridService;
     private final ObjectMapper objectMapper;
 
-    public TelemetryConsumer(DroneStateStore stateStore) {
+    public TelemetryConsumer(DroneStateStore stateStore, H3GridService h3GridService) {
         this.stateStore = stateStore;
+        this.h3GridService = h3GridService;
         this.objectMapper = new ObjectMapper();
     }
 
@@ -45,8 +48,8 @@ public class TelemetryConsumer {
         snap.setLatestTelemetry(telemetry);
         snap.setLastUpdateEpochMs(System.currentTimeMillis());
 
-        // H3 索引（简化：基于经纬度计算近似 H3 索引）
-        snap.setH3Index(computeApproximateH3(telemetry.getLat(), telemetry.getLon()));
+        // H3 索引（uber/h3 官方库，分辨率 airspace.h3-resolution，默认 9 级）
+        snap.setH3Index(h3GridService.index(telemetry.getLat(), telemetry.getLon()));
 
         // 速度估计
         if (prev != null && prev.getLatestTelemetry() != null) {
@@ -90,19 +93,5 @@ public class TelemetryConsumer {
         }
 
         stateStore.put(snap);
-    }
-
-    /**
-     * 简化 H3 索引计算（避免引入 H3 库依赖）
-     * <p>
-     * 使用经纬度网格近似：将地球表面按 0.01° 划分网格，
-     * 用网格 ID 替代 H3 索引。生产环境替换为真正的 H3（uber/h3）。
-     */
-    private long computeApproximateH3(double lat, double lon) {
-        // 分辨率 9 级对应约 0.01°（~1km），用网格坐标替代
-        long gridLat = (long) ((lat + 90.0) * 10000);
-        long gridLon = (long) ((lon + 180.0) * 10000);
-        // 组合为一个 long（高 32 位 = lat，低 32 位 = lon）
-        return (gridLat << 32) | (gridLon & 0xFFFFFFFFL);
     }
 }

@@ -38,4 +38,10 @@ public class AirspaceControllerProperties {
 
     /** 不确定性膨胀率（米/秒） */
     private double uncertaintyGrowthRateMps = 2.0;
+
+    /** H3 网格容量阈值：单元格内最大同时在线架数，超过即触发容量告警 */
+    private int capacityMaxDronesPerCell = 8;
+
+    /** 是否启用容量超限告警 */
+    private boolean capacityAlarmEnabled = true;
 }

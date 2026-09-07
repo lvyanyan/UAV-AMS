@@ -15,7 +15,11 @@ public enum AlarmType {
     NO_FLIGHT_PLAN("无计划飞行"),
     SPEED_VIOLATION("超速"),
     ALTITUDE_VIOLATION("超高"),
-    GEOFENCE_VIOLATION("围栏越界");
+    GEOFENCE_VIOLATION("围栏越界"),
+    CAPACITY_EXCEEDED("容量超限"),
+    ABNORMAL_HOVER("异常悬停"),
+    SPEED_PLUNGE("速度骤降"),
+    BATTERY_PLUNGE("电量骤降");
 
     private final String label;
     AlarmType(String label) { this.label = label; }
