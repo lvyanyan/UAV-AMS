@@ -33,17 +33,17 @@ spring:
           predicates:
             - Path=/api/flight-plan/**
         - id: uav-alarm-engine
-          uri: http://localhost:8082
+          uri: http://localhost:18082
           predicates:
             - Path=/api/alarm/**
         - id: uav-risk-assessment
-          uri: http://localhost:8083
+          uri: http://localhost:18083
           predicates:
             - Path=/api/risk/**
         - id: uav-airspace-controller
           uri: http://localhost:8084
           predicates:
-            - Path=/api/airspace-control/**
+            - Path=/api/airspace-controller/**
         - id: uav-airspace
           uri: http://localhost:8085
           predicates:

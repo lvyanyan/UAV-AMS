@@ -1,19 +1,27 @@
 package com.uav.common.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 import java.time.Instant;
 import java.util.Map;
 
 /**
  * 无人机遥测数据 DTO - 所有模块通用
+ * <p>
+ * 字段注解对齐 uav-realtime (Go) 生产 JSON 的 snake_case 键名。
  */
 public class TelemetryDTO {
+    @JsonProperty("drone_sn")
     private String droneSn;
     private Double latitude;
     private Double longitude;
     private Double altitude;
     private Double heading;
+    @JsonProperty("ground_speed")
     private Double groundSpeed;
     private Double climbRate;
+    @JsonProperty("battery_percent")
     private Integer batteryPercent;
     private Integer rssi;
     private Integer gpsSatellites;
@@ -21,10 +29,20 @@ public class TelemetryDTO {
     private Double pitch;
     private Double yaw;
     private String flightMode;
+    @JsonProperty("flight_phase")
     private String flightPhase;
+    @JsonProperty("flight_plan_id")
     private String flightPlanId;
     private String h3Index;
+    @JsonProperty("timestamp")
+    @JsonDeserialize(using = EpochMilliInstantDeserializer.class)
     private Instant timestamp;
+    @JsonProperty("model")
+    private String model;
+    @JsonProperty("wind_speed_ms")
+    private Double windSpeedMs;
+    @JsonProperty("temperature_c")
+    private Double temperatureC;
     private Map<String, Object> extra;
 
     // ---- 别名方法（兼容不同模块的字段名） ----
@@ -76,4 +94,10 @@ public class TelemetryDTO {
     public void setTimestamp(Instant timestamp) { this.timestamp = timestamp; }
     public Map<String, Object> getExtra() { return extra; }
     public void setExtra(Map<String, Object> extra) { this.extra = extra; }
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
+    public Double getWindSpeedMs() { return windSpeedMs; }
+    public void setWindSpeedMs(Double windSpeedMs) { this.windSpeedMs = windSpeedMs; }
+    public Double getTemperatureC() { return temperatureC; }
+    public void setTemperatureC(Double temperatureC) { this.temperatureC = temperatureC; }
 }
