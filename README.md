@@ -135,14 +135,13 @@ docker exec uav-flink-jobmanager flink run -c com.uav.flinkcep.CepAlarmJob /opt/
 
 ## 界面截图
 
-<!-- 截图就位后取消注释（图片放 docs/screenshots/，建议 1600x900 以上）：
-![三维监管大屏](docs/screenshots/dashboard.png)
-![轨迹回放与告警](docs/screenshots/track-alarm.png)
-![微信小程序](docs/screenshots/miniapp.png)
--->
+![飞行监控三维大屏 · 万架级实时渲染](docs/screenshots/dashboard.png)
 
-> 📷 截图指南：`start-all.bat` 全栈启动后登录 http://localhost:5173（admin / admin123），截取 ① 三维监管大屏（机队 + 空域图层）、
-> ② 轨迹回放、③ 告警列表、④ 微信小程序端；存入 `docs/screenshots/` 并取消上方注释。前端压测动图参考 `million-demo/`（Go 仿真器 + 独立前端，可单独启动）。
+![飞行计划多级审批（Flowable BPMN）](docs/screenshots/flight-plan-approval.png)
+
+![违规处置 · 告警触发自动生成处罚记录](docs/screenshots/violation.png)
+
+> 补充素材欢迎追加：微信小程序端、轨迹回放、H3 网格热力图（`GET /api/airspace-controller/grid/density`）。前端压测动图参考 `million-demo/`。
 
 ## 文档
 

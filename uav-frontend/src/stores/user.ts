@@ -10,7 +10,9 @@ export const useUserStore = defineStore('user', () => {
   const isMilitary = ref(false)
 
   async function doLogin(params: LoginParams) {
-    const res: LoginResult = await loginApi(params)
+    // axios 拦截器返回 R 信封，实际载荷在 data 中（兼容直接返回载荷的情况）
+    const env: any = await loginApi(params)
+    const res: LoginResult = (env && env.data) ? env.data : env
     token.value = res.token
     username.value = res.username
     realName.value = res.realName

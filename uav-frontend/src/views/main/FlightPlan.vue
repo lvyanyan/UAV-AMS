@@ -16,13 +16,14 @@
     </div>
 
     <el-table :data="plans" border stripe v-loading="loading" style="width:100%">
-      <el-table-column prop="planNo" label="计划编号" width="140" />
+      <el-table-column prop="planCode" label="计划编号" width="140" />
       <el-table-column prop="pilotName" label="驾驶员" width="100" />
       <el-table-column prop="droneSn" label="无人机SN" width="130" />
-      <el-table-column prop="flightArea" label="飞行区域" min-width="150" />
-      <el-table-column prop="startTime" label="开始时间" width="160" />
-      <el-table-column prop="endTime" label="结束时间" width="160" />
-      <el-table-column prop="maxAltitude" label="最大高度(m)" width="110" />
+      <el-table-column prop="departure" label="起飞点" min-width="120" />
+      <el-table-column prop="destination" label="降落点" min-width="120" />
+      <el-table-column prop="plannedStart" label="开始时间" width="160" />
+      <el-table-column prop="plannedEnd" label="结束时间" width="160" />
+      <el-table-column prop="altCeilingM" label="最大高度(m)" width="110" />
       <el-table-column prop="planStatus" label="状态" width="120">
         <template #default="{ row }">
           <el-tag :type="statusTag(row.planStatus)">{{ statusLabel(row.planStatus) }}</el-tag>

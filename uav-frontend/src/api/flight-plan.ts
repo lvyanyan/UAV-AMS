@@ -30,9 +30,9 @@ export interface FlightPlanApproval {
 }
 
 export const flightPlanApi = {
-  create: (data: FlightPlan): Promise<R<FlightPlan>> => request.post('/api/flight-plan', data),
+  create: (data: FlightPlan): Promise<R<FlightPlan>> => request.post('/flight-plan', data),
   getById: (id: number): Promise<R<FlightPlan>> => request.get(`/api/flight-plan/${id}`),
-  list: (): Promise<R<FlightPlan[]>> => request.get('/api/flight-plan/list'),
+  list: (): Promise<R<FlightPlan[]>> => request.get('/flight-plan/list'),
   listByStatus: (status: string): Promise<R<FlightPlan[]>> => request.get(`/api/flight-plan/list/status/${status}`),
   update: (id: number, data: FlightPlan): Promise<R<FlightPlan>> => request.put(`/api/flight-plan/${id}`, data),
   submit: (id: number): Promise<R<FlightPlan>> => request.put(`/api/flight-plan/${id}/submit`),

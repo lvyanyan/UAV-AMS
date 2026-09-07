@@ -24,9 +24,9 @@ export interface UavPilotMedical {
 }
 
 export const pilotApi = {
-  create: (data: UavPilot): Promise<R<UavPilot>> => request.post('/api/pilot', data),
+  create: (data: UavPilot): Promise<R<UavPilot>> => request.post('/pilot', data),
   getById: (id: number): Promise<R<UavPilot>> => request.get(`/api/pilot/${id}`),
-  list: (): Promise<R<UavPilot[]>> => request.get('/api/pilot/list'),
+  list: (): Promise<R<UavPilot[]>> => request.get('/pilot/list'),
   update: (id: number, data: UavPilot): Promise<R<UavPilot>> => request.put(`/api/pilot/${id}`, data),
   suspend: (id: number): Promise<R<UavPilot>> => request.put(`/api/pilot/${id}/suspend`),
   reactivate: (id: number): Promise<R<UavPilot>> => request.put(`/api/pilot/${id}/reactivate`),

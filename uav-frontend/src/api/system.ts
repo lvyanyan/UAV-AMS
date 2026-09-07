@@ -24,17 +24,17 @@ export interface SysRole {
 
 export const systemApi = {
   // 用户管理
-  listUsers: (): Promise<R<SysUser[]>> => request.get('/api/user/list'),
-  createUser: (data: SysUser): Promise<R<SysUser>> => request.post('/api/user', data),
+  listUsers: (): Promise<R<SysUser[]>> => request.get('/user/list'),
+  createUser: (data: SysUser): Promise<R<SysUser>> => request.post('/user', data),
   updateUser: (id: number, data: SysUser): Promise<R<SysUser>> => request.put(`/api/user/${id}`, data),
   deleteUser: (id: number): Promise<R<any>> => request.delete(`/api/user/${id}`),
   enableUser: (id: number): Promise<R<SysUser>> => request.put(`/api/user/${id}/enable`),
   disableUser: (id: number): Promise<R<SysUser>> => request.put(`/api/user/${id}/disable`),
 
   // 角色管理
-  listRoles: (): Promise<R<SysRole[]>> => request.get('/api/role/list'),
-  createRole: (data: SysRole): Promise<R<SysRole>> => request.post('/api/role', data),
+  listRoles: (): Promise<R<SysRole[]>> => request.get('/role/list'),
+  createRole: (data: SysRole): Promise<R<SysRole>> => request.post('/role', data),
 
   // 审计日志
-  listAuditLogs: (): Promise<R<any[]>> => request.get('/api/audit/list'),
+  listAuditLogs: (): Promise<R<any[]>> => request.get('/audit/list'),
 }
