@@ -30,6 +30,7 @@
         <module>uav-airspace-controller</module>
         <module>uav-airspace</module>
         <module>uav-track-fusion</module>
+        <module>uav-flink-processor</module>
     </modules>
 
     <properties>

@@ -54,16 +54,42 @@ services:
     environment:
       CLUSTER_ID: "MkU3OEVBNTcwNTdENzlFQj"         # ★关键修复：KRaft 必须
       KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9092'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://localhost:9092,INTERNAL://kafka:29092'
       KAFKA_PROCESS_ROLES: 'broker,controller'
       KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093'
       KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:29092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'INTERNAL'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
     volumes:
       - kafkadata:/var/lib/kafka/data
+
+  # Flink CEP 作业集群（可选启动）：docker compose --profile flink up -d
+  # 作业提交见 uav-flink-processor 模块 README；容器内 bootstrap 地址用 kafka:29092
+  flink-jobmanager:
+    image: flink:1.18.1
+    container_name: uav-flink-jobmanager
+    profiles: ["flink"]
+    ports:
+      - "8081:8081"      # Flink WebUI
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+    command: jobmanager
+
+  flink-taskmanager:
+    image: flink:1.18.1
+    container_name: uav-flink-taskmanager
+    profiles: ["flink"]
+    depends_on:
+      - flink-jobmanager
+    environment:
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: flink-jobmanager
+        taskmanager.numberOfTaskSlots: 2
+    command: taskmanager
 
 volumes:
   pgdata:
