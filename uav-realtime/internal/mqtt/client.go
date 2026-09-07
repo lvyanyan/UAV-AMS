@@ -62,8 +62,19 @@ func (c *Client) Start(ctx context.Context) {
 		SetUsername(c.cfg.Username).
 		SetPassword(c.cfg.Password).
 		SetAutoReconnect(true).
-		SetMaxReconnectInterval(30 * 1000 * 1000 * 1000).
-		SetConnectTimeout(10 * time.Second)
+		SetMaxReconnectInterval(30 * time.Second).
+		SetConnectTimeout(10 * time.Second).
+		SetOnConnectHandler(func(client mqtt.Client) {
+			// 订阅必须挂在 OnConnect：clean_start 会话在每次重连后都需重新订阅
+			topic := "uav/+/telemetry"
+			token := client.Subscribe(topic, c.cfg.QoS, c.onTelemetryMessage)
+			token.Wait()
+			if token.Error() != nil {
+				log.Printf("[MQTT] 订阅失败: %v", token.Error())
+			} else {
+				log.Printf("[MQTT] 已订阅: %s（连接/重连自动重订）", topic)
+			}
+		})
 
 	c.client = mqtt.NewClient(opts)
 
@@ -91,14 +102,6 @@ func (c *Client) Start(ctx context.Context) {
 		return
 	}
 
-	topic := "uav/+/telemetry"
-	token := c.client.Subscribe(topic, c.cfg.QoS, c.onTelemetryMessage)
-	token.Wait()
-	if token.Error() != nil {
-		log.Printf("[MQTT] ❌ 订阅失败: %v", token.Error())
-	} else {
-		log.Printf("[MQTT] ✅ 已订阅: %s", topic)
-	}
 }
 
 // OnTelemetry 注册 WebSocket 广播处理器
