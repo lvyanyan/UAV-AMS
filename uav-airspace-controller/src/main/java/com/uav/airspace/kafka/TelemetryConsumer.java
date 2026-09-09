@@ -1,5 +1,6 @@
 package com.uav.airspace.kafka;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uav.airspace.grid.H3GridService;
 import com.uav.airspace.state.DroneStateSnapshot;
@@ -27,7 +28,8 @@ public class TelemetryConsumer {
     public TelemetryConsumer(DroneStateStore stateStore, H3GridService h3GridService) {
         this.stateStore = stateStore;
         this.h3GridService = h3GridService;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @KafkaListener(topics = "uav.telemetry", groupId = "airspace-controller")

@@ -29,3 +29,7 @@ Thumbs.db
 # Env
 .env
 .env.local
+
+# 运行时产物
+logs/
+bin/

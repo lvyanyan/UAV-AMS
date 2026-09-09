@@ -1,6 +1,6 @@
 # UAV Realtime Service 配置
 mqtt:
-  broker: tcp://localhost:1883
+  broker: tcp://172.27.19.223:1883
   client_id: uav-realtime
   username: ""
   password: ""
@@ -13,10 +13,10 @@ websocket:
 
 kafka:
   brokers:
-    - localhost:9092
+    - 172.27.19.223:9092
   topic: uav.telemetry
 
 redis:
-  addr: localhost:6379
+  addr: 172.27.19.223:6379
   password: ""
   db: 0

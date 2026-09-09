@@ -8,9 +8,8 @@
 
     <!--
       飞行计划多级审批流程（替代原控制器内硬编码状态机）
-      DRAFT --submit--> 一级审核 --> 二级审核 --> 三级审核 --> APPROVED
-                          └─ 任意节点 approved=false → REJECTED
-      流程变量：planId(String, businessKey) / planCode / riskLevel / approved / lastLevel
+      DRAFT 提交后依次经过一级/二级/三级审核，任一节点 approved=false 即驳回；
+      全部通过则落 APPROVED。流程变量：planId(String, businessKey) / planCode / riskLevel / approved / lastLevel
     -->
     <process id="flightPlanApproval" name="飞行计划多级审批" isExecutable="true">
 
