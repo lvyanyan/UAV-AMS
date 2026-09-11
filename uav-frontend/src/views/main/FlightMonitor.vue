@@ -17,6 +17,68 @@
       </div>
       <button @click="toggleAirspace">{{ showAirspace ? '隐藏' : '显示' }}空域</button>
       <button @click="toggleFps">FPS</button>
+      <button :class="{ active: activePanel === 'layers' }" @click="togglePanel('layers')">图层</button>
+      <button :class="{ active: activePanel === 'replay' }" @click="togglePanel('replay')">重放</button>
+      <button :class="{ active: activePanel === 'suppress' }" @click="togglePanel('suppress')">抑制</button>
+    </div>
+    <!-- 图层 / 消息重放 / 告警抑制 面板 -->
+    <div v-if="activePanel" class="side-panel">
+      <div class="sp-head">
+        <b>{{ panelTitle }}</b>
+        <el-icon class="sp-close" @click="activePanel = null"><Close /></el-icon>
+      </div>
+      <div class="sp-body">
+        <template v-if="activePanel === 'layers'">
+          <div v-for="g in layerGroups" :key="g.name" class="layer-group">
+            <div class="lg-title">{{ g.name }} <span class="lg-count">{{ g.items.length }}</span></div>
+            <label v-for="it in g.items" :key="it.key" class="layer-item">
+              <input type="checkbox" v-model="it.visible" @change="renderOverlays" />
+              <span class="layer-name" :class="{ nofly: it.kind === 'no_fly' }">{{ it.label }}</span>
+            </label>
+          </div>
+          <div v-if="!layerGroups.length" class="empty-hint">暂无空域/航路/起降场数据</div>
+        </template>
+        <template v-else-if="activePanel === 'replay'">
+          <div class="replay-stat">录制窗口：最近 10 分钟 · 已缓存 <b>{{ replayBuffered }}</b> 条遥测</div>
+          <template v-if="!replay.active">
+            <el-button type="primary" style="width:100%" :disabled="replayBuffered < 2" @click="startReplay">开始重放</el-button>
+            <div v-if="replayBuffered < 2" class="empty-hint">缓存不足，等待遥测积累…</div>
+          </template>
+          <template v-else>
+            <el-slider v-model="replay.progress" :min="0" :max="100" :step="0.1" @input="seekReplay" />
+            <div class="replay-btns">
+              <el-button size="small" @click="replay.playing ? pauseReplay() : resumeReplay()">{{ replay.playing ? '暂停' : '继续' }}</el-button>
+              <el-select :model-value="replay.speed" size="small" style="width:90px" @update:model-value="changeSpeed">
+                <el-option label="1x" :value="1" /><el-option label="4x" :value="4" />
+                <el-option label="16x" :value="16" /><el-option label="64x" :value="64" />
+              </el-select>
+              <el-button size="small" type="danger" @click="stopReplay">停止</el-button>
+            </div>
+            <div class="replay-stat">重放中 {{ replay.progress.toFixed(0) }}% · 已应用 {{ replay.idx }}/{{ replayBuffered }} 条</div>
+          </template>
+          <div class="empty-hint">重放期间实时遥测挂起，停止后恢复；仅标准模式可用</div>
+        </template>
+        <template v-else-if="activePanel === 'suppress'">
+          <div class="suppress-form">
+            <el-select v-model="newRule.type" placeholder="按告警类型抑制" clearable size="small" style="width:100%;margin-bottom:6px">
+              <el-option v-for="d in alarmTypeItems" :key="d.value" :label="d.label" :value="d.value" />
+            </el-select>
+            <el-select v-model="newRule.level" placeholder="按级别抑制" clearable size="small" style="width:100%;margin-bottom:6px">
+              <el-option v-for="d in alarmLevelItems" :key="d.value" :label="d.label" :value="d.value" />
+            </el-select>
+            <el-input v-model="newRule.sn" placeholder="按无人机SN抑制（可选）" size="small" style="margin-bottom:6px" />
+            <el-button type="primary" size="small" style="width:100%" @click="addSuppressRule">添加抑制规则</el-button>
+          </div>
+          <div class="suppress-list">
+            <div v-for="(r, i) in suppressRules" :key="i" class="suppress-item">
+              <span>{{ ruleText(r) }}</span>
+              <el-icon class="sp-close" @click="suppressRules.splice(i, 1); saveRules()"><Close /></el-icon>
+            </div>
+            <div v-if="!suppressRules.length" class="empty-hint">暂无抑制规则</div>
+            <div v-if="suppressedCount" class="empty-hint">本次会话已抑制 {{ suppressedCount }} 条告警</div>
+          </div>
+        </template>
+      </div>
     </div>
     <div v-if="showFps" class="fps-overlay">{{ fpsText }}</div>
     <div v-if="millionDropped > 0" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker/渲染跟不上）</div>
@@ -42,13 +104,18 @@
 </template>
 
 <script setup>
-import { ref, shallowRef, onMounted, onUnmounted } from 'vue'
+import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
 import * as Cesium from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { CESIUM_CONFIG } from '@/config/cesiumConfig.js'
 import { useLodDroneRenderer } from '@/composables/useLodDroneRenderer.js'
 import { useMillionRenderer } from '@/composables/useMillionRenderer.js'
 import AlertPanel from '@/components/AlertPanel.vue'
+import { ElMessage } from 'element-plus'
+import { useDict } from '@/composables/useDict'
+import { airspaceApi } from '@/api/airspace'
+import { routeApi } from '@/api/route'
+import { airportApi } from '@/api/airport'
 
 const cesiumContainer = ref(null)
 const viewerRef = shallowRef(null)
@@ -73,6 +140,204 @@ const millionFrameMode = ref('连接中')   // 聚合 | 原始 | 连接中 | 断
 const millionDropped = ref(0)
 const fleetScale = ref(0)               // 当前机群规模（/stats 轮询回填，命中 SCALES 才亮）
 const millionLabel = ref({ visible: false, x: 0, y: 0, index: -1, lon: '--', lat: '--', alt: '--', alertClass: 'NONE', alertText: '无' })
+
+// ── 图层 / 消息重放 / 告警抑制 ──
+const { items: alarmTypeItems, label: typeLabel } = useDict('alarm_type')
+const { items: alarmLevelItems, label: levelLabel } = useDict('alarm_level')
+const { items: directionItems, label: directionLabel } = useDict('route_direction')
+
+const activePanel = ref(null)
+const panelTitle = computed(() => ({ layers: '图层选择', replay: '消息重放', suppress: '告警抑制' }[activePanel.value] || ''))
+function togglePanel(name) { activePanel.value = activePanel.value === name ? null : name }
+
+const airspaceList = ref([])
+const routeList = ref([])
+const airportList = ref([])
+const layerItems = ref([])   // { group, key, id, label, kind, visible, data }
+
+const layerGroups = computed(() => {
+  const groups = []
+  for (const g of ['空域', '航路', '起降场']) {
+    const items = layerItems.value.filter(i => i.group === g)
+    if (items.length) groups.push({ name: g + '（' + items.length + '）', items })
+  }
+  return groups
+})
+
+let overlayEntities = []
+function renderOverlays() {
+  if (!viewer) return
+  overlayEntities.forEach(e => { try { viewer.entities.remove(e) } catch (err) {} })
+  overlayEntities = []
+  for (const it of layerItems.value) {
+    if (!it.visible) continue
+    try {
+      if (it.group === '空域') {
+        const ring = JSON.parse(it.data.geoJson).coordinates[0]
+        overlayEntities.push(viewer.entities.add({
+          polygon: {
+            hierarchy: Cesium.Cartesian3.fromDegreesArray(ring.flat()),
+            material: (it.kind === 'no_fly' ? Cesium.Color.RED : Cesium.Color.DODGERBLUE).withAlpha(0.25),
+            outline: true, outlineColor: Cesium.Color.WHITE.withAlpha(0.6),
+          },
+        }))
+        const cLon = ring.reduce((sum, q) => sum + q[0], 0) / ring.length
+        const cLat = ring.reduce((sum, q) => sum + q[1], 0) / ring.length
+        overlayEntities.push(viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(cLon, cLat),
+          label: { text: it.data.airspaceName, font: '12px sans-serif', fillColor: Cesium.Color.WHITE,
+                   pixelOffset: new Cesium.Cartesian2(0, -10), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        }))
+      } else if (it.group === '航路') {
+        const wp = JSON.parse(it.data.waypoints || '[]')
+        if (wp.length >= 2) {
+          overlayEntities.push(viewer.entities.add({
+            polyline: { positions: Cesium.Cartesian3.fromDegreesArray(wp.flat()), width: 3,
+                        material: Cesium.Color.ORANGE, clampToGround: true },
+          }))
+        }
+        wp.forEach(pnt => overlayEntities.push(viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(pnt[0], pnt[1]),
+          point: { pixelSize: 8, color: Cesium.Color.ORANGE },
+        })))
+      } else if (it.group === '起降场') {
+        overlayEntities.push(viewer.entities.add({
+          position: Cesium.Cartesian3.fromDegrees(it.data.lon, it.data.lat),
+          point: { pixelSize: 12, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
+          label: { text: it.data.airportName, font: '12px sans-serif', fillColor: Cesium.Color.WHITE,
+                   pixelOffset: new Cesium.Cartesian2(0, -14), disableDepthTestDistance: Number.POSITIVE_INFINITY },
+        }))
+      }
+    } catch (e) { /* 跳过坏数据 */ }
+  }
+}
+
+async function loadLayers() {
+  try {
+    const results = await Promise.all([airspaceApi.list(), routeApi.list(), airportApi.list()])
+    airspaceList.value = results[0].data || []
+    routeList.value = results[1].data || []
+    airportList.value = results[2].data || []
+    const items = []
+    for (const a of airspaceList.value) {
+      if (!a.geoJson) continue
+      items.push({ group: '空域', key: 'a' + a.id, id: a.id, data: a,
+                   label: a.airspaceName + '（' + typeLabel(a.airspaceType) + '）',
+                   kind: ['NO_FLY', 'TEMP_NO_FLY'].includes(a.airspaceType) ? 'no_fly' : '', visible: false })
+    }
+    for (const r of routeList.value) {
+      items.push({ group: '航路', key: 'r' + r.id, id: r.id, data: r,
+                   label: r.routeName + '（' + directionLabel(r.direction) + '）', kind: '', visible: false })
+    }
+    for (const ap of airportList.value) {
+      items.push({ group: '起降场', key: 'p' + ap.id, id: ap.id, data: ap,
+                   label: ap.airportName + '（' + typeLabel(ap.airportType) + '）', kind: '', visible: false })
+    }
+    layerItems.value = items
+    renderOverlays()
+  } catch (e) { console.warn('[FlightMonitor] 图层数据加载失败', e) }
+}
+
+// ── 消息重放 ──
+const REPLAY_WINDOW_MS = 10 * 60 * 1000
+let telemetryLog = []
+let replayTimer = null
+let replayStartReal = 0
+let replayStartVirtual = 0
+let pauseElapsed = 0
+const replay = ref({ active: false, playing: false, progress: 0, speed: 16 })
+const replayBuffered = ref(0)
+
+function recordTelemetry(data) {
+  const now = Date.now()
+  telemetryLog.push({ t: now, data })
+  while (telemetryLog.length && now - telemetryLog[0].t > REPLAY_WINDOW_MS) telemetryLog.shift()
+  replayBuffered.value = telemetryLog.length
+}
+
+function startReplay() {
+  if (telemetryLog.length < 2) return
+  replay.value.idx = 0
+  pauseElapsed = 0
+  replay.value.active = true
+  replay.value.playing = true
+  replayStartReal = performance.now()
+  replayStartVirtual = telemetryLog[0].t
+  replayTimer = setInterval(tickReplay, 60)
+}
+function tickReplay() {
+  if (!replay.value.playing) return
+  const virtual = replayStartVirtual + pauseElapsed + (performance.now() - replayStartReal) * replay.value.speed
+  const span = telemetryLog.length ? telemetryLog[telemetryLog.length - 1].t - telemetryLog[0].t : 1
+  while (replay.value.idx < telemetryLog.length && telemetryLog[replay.value.idx].t <= virtual) {
+    const msg = telemetryLog[replay.value.idx]
+    applyData(msg.data, getDroneId(msg.data))
+    replay.value.idx++
+  }
+  replay.value.progress = Math.min(100, ((virtual - telemetryLog[0].t) / span) * 100)
+  if (replay.value.idx >= telemetryLog.length) { replay.value.progress = 100; pauseReplay() }
+}
+function pauseReplay() {
+  replay.value.playing = false
+  pauseElapsed += (performance.now() - replayStartReal) * replay.value.speed
+  replayStartReal = performance.now()
+}
+function resumeReplay() {
+  replay.value.playing = true
+  replayStartReal = performance.now()
+}
+function changeSpeed(v) {
+  if (replay.value.active && replay.value.playing) {
+    pauseElapsed += (performance.now() - replayStartReal) * replay.value.speed
+    replayStartReal = performance.now()
+  }
+  replay.value.speed = v
+}
+function seekReplay() {
+  const span = telemetryLog.length ? telemetryLog[telemetryLog.length - 1].t - telemetryLog[0].t : 1
+  const target = telemetryLog[0].t + span * (replay.value.progress / 100)
+  replay.value.idx = 0
+  while (replay.value.idx < telemetryLog.length && telemetryLog[replay.value.idx].t <= target) {
+    applyData(telemetryLog[replay.value.idx].data, getDroneId(telemetryLog[replay.value.idx].data))
+    replay.value.idx++
+  }
+  replayStartVirtual = target
+  replayStartReal = performance.now()
+}
+function stopReplay() {
+  if (replayTimer) { clearInterval(replayTimer); replayTimer = null }
+  replay.value.active = false
+  replay.value.playing = false
+  replay.value.progress = 0
+  replay.value.idx = 0
+}
+
+// ── 告警抑制 ──
+const suppressRules = ref(JSON.parse(localStorage.getItem('fm_suppress_rules') || '[]'))
+const suppressedCount = ref(0)
+const newRule = ref({ type: '', level: '', sn: '' })
+function saveRules() { localStorage.setItem('fm_suppress_rules', JSON.stringify(suppressRules.value)) }
+function addSuppressRule() {
+  const r = { type: newRule.value.type || '', level: newRule.value.level || '', sn: (newRule.value.sn || '').trim() }
+  if (!r.type && !r.level && !r.sn) { ElMessage.warning('至少填写一个抑制条件'); return }
+  suppressRules.value.push(r)
+  saveRules()
+  newRule.value = { type: '', level: '', sn: '' }
+}
+function ruleText(r) {
+  const parts = []
+  if (r.type) parts.push('类型=' + typeLabel(r.type))
+  if (r.level) parts.push('级别=' + levelLabel(r.level))
+  if (r.sn) parts.push('SN=' + r.sn)
+  return '抑制 ' + parts.join(' 且 ')
+}
+function isSuppressed(d) {
+  return suppressRules.value.some(r =>
+    (!r.type || d.alarmType === r.type) &&
+    (!r.level || d.alarmLevel === r.level) &&
+    (!r.sn || (d.droneSn || '') === r.sn) &&
+    (r.type || r.level || r.sn))
+}
 
 let viewer = null
 let ws = null
@@ -274,6 +539,8 @@ async function enterMillionMode() {
   droneMap.clear(); slotToSn = []; nextSlot = 0
   renderer.destroy()
   closeLabel()
+  stopReplay()
+  activePanel.value = null
 
   // 2) 起百万链路：Worker + WS + 视锥上报 + 在线数轮询
   millionRenderer.init()
@@ -351,6 +618,8 @@ function closeMillionLabel() {
 
 // ── 告警事件：uav.alarm.event 经实时服务推送到 WS ──
 function onAlarmEvent(d) {
+  // 告警抑制：命中规则的告警不进入面板与计数
+  if (isSuppressed(d)) { suppressedCount.value++; return }
   const sn = d.droneSn || '--'
   const meta = droneMeta.get(sn) || {}
   meta.alertLevel = d.alarmLevel || 'GENERAL'
@@ -361,8 +630,10 @@ function onAlarmEvent(d) {
   alertList.value.unshift({
     time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
     level: meta.alertLevel,
+    levelLabel: levelLabel(meta.alertLevel),
     sn,
     type: meta.alertType,
+    typeLabel: typeLabel(meta.alertType),
     desc: d.title || d.description || ''
   })
   if (alertList.value.length > 50) alertList.value.pop()
@@ -435,6 +706,9 @@ function getDroneId(data) {
 function onTelemetry(data) {
     // 百万模式：JSON 遥测不喂渲染器也不缓冲（防内存积压），WS 保持连接只为告警事件
     if (mode.value === 'million') return
+    // 消息重放：滚动录制最近 10 分钟遥测；重放期间挂起实时渲染
+    recordTelemetry(data)
+    if (replay.value.active) return
     const id = getDroneId(data)
     if (!id) return
 
@@ -588,11 +862,13 @@ onMounted(() => {
   loadPlanMeta()
   viewer.screenSpaceEventHandler.setInputAction(onLeftClick, Cesium.ScreenSpaceEventType.LEFT_CLICK)
   statsTimer = setInterval(updateStats, 2000)
+  loadLayers()
   mainLoop()
 })
 
 onUnmounted(() => {
   cancelAnimationFrame(rafId)
+  stopReplay()
   clearTimeout(wsReconnectTimer); clearTimeout(initTimer); clearInterval(statsTimer)
   clearTimeout(fleetWsReconnectTimer)
   if (camListener) { camListener(); camListener = null }
@@ -619,6 +895,30 @@ onUnmounted(() => {
 .scale-group { display: flex; flex-direction: column; gap: 4px; }
 .scale-group button { background: rgba(0,0,0,0.7); color: #9ecbff; border: 1px solid #555; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
 .scale-group button.active { background: #0b3a66; border-color: #409eff; color: #fff; }
+.side-panel {
+  position: absolute; top: 120px; left: 10px; width: 300px; max-height: 72vh;
+  background: rgba(0,0,0,0.82); border: 1px solid #3a4a5f; border-radius: 8px;
+  z-index: 15; color: #dfe8f3; display: flex; flex-direction: column;
+}
+.sp-head { display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; border-bottom: 1px solid #3a4a5f; font-size: 13px; }
+.sp-close { cursor: pointer; }
+.sp-close:hover { color: #fff; }
+.sp-body { padding: 10px 12px; overflow-y: auto; }
+.layer-group { margin-bottom: 10px; }
+.lg-title { font-size: 12px; color: #8fa2ba; margin-bottom: 4px; }
+.lg-count { color: #5f7189; }
+.layer-item { display: flex; align-items: center; gap: 6px; padding: 3px 4px;
+  border-radius: 4px; cursor: pointer; font-size: 12px; }
+.layer-item:hover { background: rgba(255,255,255,.06); }
+.layer-name.nofly { color: #ff6b6b; }
+.empty-hint { color: #5f7189; font-size: 12px; padding: 4px 0; }
+.replay-stat { font-size: 12px; color: #8fa2ba; margin-bottom: 8px; }
+.replay-btns { display: flex; gap: 6px; margin: 8px 0; }
+.suppress-form { margin-bottom: 10px; }
+.suppress-item { display: flex; justify-content: space-between; align-items: center;
+  font-size: 12px; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px;
+  background: rgba(255,255,255,.04); }
 .drop-overlay { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); background: rgba(120,0,0,0.8); color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 12px; z-index: 10; font-family: monospace; }
 .fps-overlay { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: #0f0; font-family: monospace; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
 /* Cesium 自带 FPS 调试层默认在右上角(top:50px,right:10px)被工具栏遮挡，挪到左上角 rAF 旁 */

@@ -6,12 +6,12 @@
       <button class="clear-btn" @click.stop="$emit('clear')">清空</button>
     </div>
     <div v-show="!collapsed" class="alert-body">
-      <div v-if="alerts.length === 0" class="no-alert">暂无告警 ✅</div>
+      <div v-if="alerts.length === 0" class="no-alert">暂无告警</div>
       <div v-for="(a, i) in alerts" :key="i" class="alert-item" :class="a.level" @click="$emit('focus', a.sn)">
         <span class="time">{{ a.time }}</span>
-        <span class="level-tag">{{ a.level }}</span>
+        <span class="level-tag">{{ a.levelLabel || a.level }}</span>
         <span class="sn">{{ a.sn }}</span>
-        <span class="type">{{ a.type }}</span>
+        <span class="type">{{ a.typeLabel || a.type }}</span>
         <span class="desc">{{ a.desc }}</span>
       </div>
     </div>
