@@ -53,7 +53,17 @@
           </el-select>
         </el-form-item>
         <el-form-item label="走廊宽度(m)"><el-input-number v-model="form.corridorWidthM" :min="50" :max="2000" style="width:100%" /></el-form-item>
-        <el-form-item label="航点">
+        <el-form-item label="航路地图">
+          <div style="width:100%">
+            <MapPicker ref="mapRef" mode="route" v-model="waypoints" :editable="true" height="300px" />
+            <div style="margin-top:6px;display:flex;gap:8px;align-items:center">
+              <el-button size="small" @click="mapRef?.undo()">撤销上一点</el-button>
+              <el-button size="small" @click="mapRef?.clear()">清空</el-button>
+              <span style="color:var(--el-text-color-secondary);font-size:12px">点击地图按序添加航点</span>
+            </div>
+          </div>
+        </el-form-item>
+        <el-form-item label="航点列表">
           <div class="wp-editor">
             <div v-for="(wp, i) in waypoints" :key="i" class="wp-row">
               <span class="wp-idx">{{ i + 1 }}</span>
@@ -81,6 +91,8 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { routeApi, type UavRoute } from '@/api/route'
+import MapPicker from '@/components/MapPicker.vue'
+import { ref as vueRef } from 'vue'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 
@@ -90,6 +102,7 @@ const dialogVisible = ref(false)
 const editing = ref<UavRoute>({})
 const checking = ref(false)
 const waypoints = ref<number[][]>([])
+const mapRef = vueRef(null)
 const { page, size, total, paged } = usePaging(list)
 const { items: directionItems, label: directionLabel } = useDict('route_direction')
 

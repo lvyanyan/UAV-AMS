@@ -85,26 +85,5 @@ public class SysQueryController {
         return R.ok(out);
     }
 
-    /**
-     * 违规台账（只读）：由告警记录派生 —— 危急/严重级告警视为违规线索，
-     * 处理状态沿用告警的 handled 标记（处置动作走 /api/alarm/{id}/handle）。
-     */
-    @GetMapping("/violation/list")
-    public R<List<Map<String, Object>>> violationList() {
-        List<Map<String, Object>> out = new ArrayList<>();
-        jdbc.query("select id, drone_sn, alarm_type, alarm_level, alarm_content, handled, create_time "
-                + "from alarm_record where alarm_level in ('CRITICAL','SERIOUS') order by id desc limit 200", rs -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", rs.getLong("id"));
-            m.put("droneSn", rs.getString("drone_sn"));
-            m.put("violationType", rs.getString("alarm_type"));
-            m.put("violationLevel", rs.getString("alarm_level"));
-            m.put("description", rs.getString("alarm_content"));
-            m.put("status", rs.getBoolean("handled") ? "CLOSED" : "PENDING");
-            Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", fmt(t));
-            out.add(m);
-        });
-        return R.ok(out);
-    }
+
 }

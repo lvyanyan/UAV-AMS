@@ -19,7 +19,7 @@ spring:
         - id: uav-system
           uri: http://localhost:8081
           predicates:
-            - Path=/api/auth/**,/api/user/**,/api/role/**,/api/permission/**,/api/audit/**,/api/violation/**,/api/dict/**
+            - Path=/api/auth/**,/api/user/**,/api/role/**,/api/permission/**,/api/audit/**,/api/dict/**
         - id: uav-registry
           uri: http://localhost:8086
           predicates:

@@ -66,6 +66,7 @@ public class DictInitializer implements CommandLineRunner {
         row("alarm_level", "MINOR", "轻微", 6),
 
         row("alarm_type", "TERRAIN_COLLISION", "地形碰撞", 1),
+        row("alarm_type", "NO_FLIGHT_PLAN", "无计划飞行", 2),
         row("alarm_type", "AIRSPACE", "空域违规", 2),
         row("alarm_type", "NO_PLAN", "无计划飞行", 3),
         row("alarm_type", "ALTITUDE", "高度超限", 4),
@@ -83,6 +84,11 @@ public class DictInitializer implements CommandLineRunner {
         row("user_role", "PILOT", "飞手", 4),
         row("user_role", "MILITARY", "军民协调员", 5),
 
+        row("route_direction", "ONE_WAY", "单向", 1),
+        row("route_direction", "TWO_WAY", "双向", 2),
+        row("airport_type", "TAKEOFF", "起飞场", 1),
+        row("airport_type", "LANDING", "降落场", 2),
+        row("airport_type", "ALL", "综合起降场", 3),
         row("violation_status", "PENDING", "待处理", 1),
         row("violation_status", "PROCESSING", "处理中", 2),
         row("violation_status", "CLOSED", "已结案", 3)
@@ -91,6 +97,21 @@ public class DictInitializer implements CommandLineRunner {
     private static String[] row(String type, String value, String label, int sort) {
         return new String[]{type, value, label, String.valueOf(sort)};
     }
+
+    // 字典类型注册表：(字典类型, 类型名称, 业务分组, 组内排序)
+    private static final String[][] TYPE_SEED = {
+        {"airspace_type", "空域类型", "空域管理", "1"},
+        {"route_direction", "航路方向", "航路管理", "1"},
+        {"airport_type", "起降场类型", "起降场管理", "1"},
+        {"drone_type", "无人机类型", "实名登记", "1"},
+        {"register_status", "登记状态", "实名登记", "2"},
+        {"pilot_status", "飞手状态", "飞手管理", "1"},
+        {"plan_status", "计划状态", "飞行计划", "1"},
+        {"alarm_level", "告警级别", "告警中心", "1"},
+        {"alarm_type", "告警类型", "告警中心", "2"},
+        {"user_role", "用户角色", "系统权限", "1"},
+        {"violation_status", "违规状态", "违规处置", "1"},
+    };
 
     @Override
     public void run(String... args) {
@@ -102,6 +123,20 @@ public class DictInitializer implements CommandLineRunner {
             + "sort_order int DEFAULT 0, "
             + "remark varchar(255))");
         jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_sys_dict_type_value ON sys_dict (dict_type, dict_value)");
+        jdbc.execute("CREATE TABLE IF NOT EXISTS sys_dict_type ("
+            + "id bigserial PRIMARY KEY, "
+            + "dict_type varchar(64) NOT NULL UNIQUE, "
+            + "dict_name varchar(64) NOT NULL, "
+            + "business_group varchar(64) NOT NULL, "
+            + "sort_order int DEFAULT 0)");
+        jdbc.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_sys_dict_type_pk ON sys_dict_type (dict_type)");
+        int types = 0;
+        for (String[] t : TYPE_SEED) {
+            types += jdbc.update(
+                "INSERT INTO sys_dict_type (dict_type, dict_name, business_group, sort_order) VALUES (?,?,?,?) "
+                + "ON CONFLICT (dict_type) DO NOTHING",
+                t[0], t[1], t[2], Integer.valueOf(t[3]));
+        }
 
         int inserted = 0;
         for (String[] r : SEED) {
@@ -110,9 +145,9 @@ public class DictInitializer implements CommandLineRunner {
                 + "ON CONFLICT (dict_type, dict_value) DO NOTHING",
                 r[0], r[1], r[2], Integer.valueOf(r[3]));
         }
-        log.info("字典初始化完成：{} 个类型 / 新插入 {} 条（共 {} 条）",
+        log.info("字典初始化完成：{} 个类型（类型注册表新增 {}）/ 数据新增 {} 条（共 {} 条）",
             jdbc.queryForObject("select count(distinct dict_type) from sys_dict", Integer.class),
-            inserted,
+            types, inserted,
             jdbc.queryForObject("select count(*) from sys_dict", Integer.class));
     }
 }

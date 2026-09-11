@@ -66,7 +66,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { systemApi } from '@/api/system'
+import { alarmApi } from '@/api/alarm'
 import { alarmApi } from '@/api/alarm'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
@@ -94,7 +94,7 @@ onMounted(() => loadData())
 
 async function loadData() {
   loading.value = true
-  try { const res = await systemApi.listViolations(); list.value = (res as any).data || [] }
+  try { const res = await alarmApi.violations(); list.value = (res as any).data || [] }
   finally { loading.value = false }
 }
 

@@ -30,8 +30,8 @@
         </el-table-column>
         <el-table-column label="操作" width="100">
           <template #default="{ row }">
-            <el-button v-if="!row.handled" size="small" type="primary" @click="handleAlarm(row)">处理</el-button>
-            <el-tag v-else size="small" type="success">已处理</el-tag>
+            <el-button v-if="row.status !== 'CLOSED'" size="small" type="primary" @click="handleAlarm(row)">关闭</el-button>
+            <el-tag v-else size="small" type="success">已关闭</el-tag>
           </template>
         </el-table-column>
         <template #empty><el-empty description="暂无告警" /></template>
@@ -72,7 +72,7 @@ async function loadData() {
 
 async function handleAlarm(row: AlarmEvent) {
   await alarmApi.handle(row.id!)
-  ElMessage.success('已标记为已处理')
+  ElMessage.success('告警已关闭；同机同类型再次命中会重新开启')
   loadData()
 }
 

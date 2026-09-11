@@ -51,6 +51,12 @@
             <el-option v-for="d in typeItems" :key="d.value" :label="d.label" :value="d.value" />
           </el-select>
         </el-form-item>
+        <el-form-item label="坐标选点">
+          <div style="width:100%">
+            <MapPicker mode="point" v-model="airportPoint" :editable="true" height="260px" @update:model-value="onPointPicked" />
+            <div style="margin-top:6px;color:var(--el-text-color-secondary);font-size:12px">在地图上点击选择起降场位置</div>
+          </div>
+        </el-form-item>
         <el-form-item label="经度"><el-input-number v-model="form.lon" :precision="5" :step="0.01" :controls="false" style="width:100%" /></el-form-item>
         <el-form-item label="纬度"><el-input-number v-model="form.lat" :precision="5" :step="0.01" :controls="false" style="width:100%" /></el-form-item>
         <el-form-item label="机位容量"><el-input-number v-model="form.capacity" :min="0" style="width:100%" /></el-form-item>
@@ -70,6 +76,8 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { airportApi, type UavAirport } from '@/api/airport'
+import MapPicker from '@/components/MapPicker.vue'
+import { computed } from 'vue'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 
@@ -79,6 +87,11 @@ const dialogVisible = ref(false)
 const editing = ref<UavAirport>({})
 const checking = ref(false)
 const { page, size, total, paged } = usePaging(list)
+const airportPoint = computed<number[][]>(() =>
+  (form.value.lon != null && form.value.lat != null) ? [[form.value.lon, form.value.lat]] : [])
+function onPointPicked(v: number[][]) {
+  if (v?.length) { form.value.lon = v[0][0]; form.value.lat = v[0][1] }
+}
 const { items: typeItems, label: typeLabel } = useDict('airport_type')
 
 const form = ref<UavAirport>({ airportName: '', airportCode: '', airportType: 'ALL', lon: 116.4, lat: 39.9, capacity: 4, isActive: true, remark: '' })

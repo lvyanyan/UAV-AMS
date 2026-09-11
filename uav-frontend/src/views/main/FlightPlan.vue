@@ -85,6 +85,22 @@
         <el-form-item label="结束时间"><el-date-picker v-model="form.plannedEnd" type="datetime" style="width:100%" /></el-form-item>
         <el-form-item label="最大高度(m)"><el-input-number v-model="form.altCeilingM" :min="0" :max="5000" style="width:100%" /></el-form-item>
         <el-form-item label="飞行目的"><el-input v-model="form.flightPurpose" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item label="态势图">
+          <div style="width:100%">
+            <MapPicker
+              mode="route"
+              v-model="planRoutePoints"
+              :editable="false"
+              :zones="zones"
+              :track="planRoutePoints"
+              :marks="planAirportMarks"
+              height="320px"
+            />
+            <div style="margin-top:6px;color:var(--el-text-color-secondary);font-size:12px">
+              橙线=计划航路，绿点=起降场，红色区域=禁飞区，蓝色区域=其他空域
+            </div>
+          </div>
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible=false">取消</el-button>
@@ -105,7 +121,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { flightPlanApi, type FlightPlan } from '@/api/flight-plan'
 import { pilotApi } from '@/api/pilot'
@@ -113,6 +129,8 @@ import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
 import { routeApi, type UavRoute } from '@/api/route'
+import MapPicker from '@/components/MapPicker.vue'
+import { airspaceApi } from '@/api/airspace'
 import { airportApi, type UavAirport } from '@/api/airport'
 
 const plans = ref<FlightPlan[]>([])
@@ -133,6 +151,20 @@ const form = ref<FlightPlan>({
 
 const pilots = ref<any[]>([])
 const routes = ref<UavRoute[]>([])
+const zones = ref<Array<{ name?: string; geoJson?: string; kind: string }>>([])
+const planRoutePoints = computed<number[][]>(() => {
+  const r = routes.value.find(x => x.id === form.value.routeId)
+  try { return JSON.parse(r?.waypoints || '[]') } catch { return [] }
+})
+const planAirportMarks = computed<Array<{ lon: number; lat: number; label: string }>>(() => {
+  const marks: Array<{ lon: number; lat: number; label: string }> = []
+  for (const name of [form.value.departure, form.value.destination]) {
+    if (!name) continue
+    const a = airports.value.find(x => x.airportName === name)
+    if (a?.lon != null && a?.lat != null) marks.push({ lon: a.lon, lat: a.lat, label: a.airportName || '' })
+  }
+  return marks
+})
 const airports = ref<UavAirport[]>([])
 const { label: typeLabel } = useDict('airport_type')
 const pilotNames = ref<Record<number, string>>({})
@@ -147,6 +179,10 @@ onMounted(async () => {
     pilots.value = (res as any).data || []
     routes.value = ((await routeApi.list(true) as any).data) || []
     airports.value = ((await airportApi.list(true) as any).data) || []
+    const zs = ((await airspaceApi.list() as any).data) || []
+    zones.value = zs
+      .filter((z: any) => z.geoJson)
+      .map((z: any) => ({ name: z.airspaceName, geoJson: z.geoJson, kind: ['NO_FLY', 'TEMP_NO_FLY'].includes(z.airspaceType) ? 'no_fly' : 'other' }))
   } catch (e) {}
 })
 

@@ -33,6 +33,22 @@ public class SysDictController {
         return R.ok(out);
     }
 
+    /** 字典类型元数据（含业务分组），供管理页分组展示与下拉选择 */
+    @GetMapping("/meta")
+    public R<List<Map<String, Object>>> meta() {
+        List<Map<String, Object>> out = new ArrayList<>();
+        jdbc.query("select dict_type, dict_name, business_group, sort_order from sys_dict_type "
+                + "order by sort_order, dict_type", rs -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("dictType", rs.getString("dict_type"));
+            m.put("dictName", rs.getString("dict_name"));
+            m.put("businessGroup", rs.getString("business_group"));
+            m.put("sort", rs.getInt("sort_order"));
+            out.add(m);
+        });
+        return R.ok(out);
+    }
+
     /** 按类型查询 */
     @GetMapping("/data/{dictType}")
     public R<List<Map<String, Object>>> byType(@PathVariable String dictType) {

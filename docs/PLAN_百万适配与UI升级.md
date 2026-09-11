@@ -90,6 +90,22 @@
 
 ---
 
+---
+
+## 追加任务三：告警开关状态 + 地图可视化 + 服务域治理
+
+**实施记录（2026-09-12 完成验收）**
+- **告警开关语义**：alarm_record 增加 status(OPEN/CLOSED)+closed_time；命中时先查是否已开启（AlarmOpenStateStore 内存缓存+DB 兜底），开启则不再推送/落库，直到关闭后同机同类型可重新触发；存量重复 OPEN 已合并（每键仅保留最新）。处理动作=关闭（按键关闭该机该类型全部 OPEN）。
+- **stats 语义**：total=累计全量；byLevel/byType=开启中的活跃分布。
+- **violation 接口迁移**：违规台账从 uav-system 迁至 alarm-engine（/api/alarm/violation/list，属告警/监管域），uav-system 删除该接口；前端改走 alarmApi。注：Flowable 审批引擎本就在 uav-flight-plan 独立进程（system.log 里的 3.5.5 banner 是 MyBatis-Plus）。
+- **MapPicker 地图组件**（Cesium+高德底图）：point/route/polygon 三模式、可编辑选点、空域叠加层（禁飞区红色）、只读 track/marks 叠加、自动视野适配、undo/clear。
+- **四页集成**：空域对话框多边形绘制（GeoJSON 自动生成/解析）；航路对话框地图选点（与航点列表联动）；起降场地图选点（与坐标字段双向）；飞行计划对话框态势图（航路橙线+起降场绿点+禁飞区红色叠加）。
+- 验收：关闭 STRESS-0957 告警后离开开启列表、存量重复 OPEN 清零；四页地图渲染正常；e2e 全过。
+
+**状态**：[x] 已完成（2026-09-12）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。
