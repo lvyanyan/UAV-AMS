@@ -55,7 +55,7 @@
     </div>
     <div v-if="showFps" class="fps-overlay">{{ fpsText }}</div>
     <div v-if="showDropped" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker 解析积压，已自动只处理最新帧）</div>
-    <AlertPanel :alerts="alertList" />
+    <AlertPanel :alerts="alertList" @focus="focusAlarm" @clear="alertList = []" />
     <!-- 百万模式：点击聚合点/原始点出现的简化标牌 -->
     <div v-if="millionLabel.visible" class="drone-label" :style="{ left: millionLabel.x + 'px', top: millionLabel.y + 'px' }" @click.stop>
       <div class="dl-head"><span class="dl-sn">机群目标 #{{ millionLabel.index }}</span><span class="dl-close" @click="closeMillionLabel">✕</span></div>
@@ -333,7 +333,7 @@ const ownerByDrone = new Map()    // drone_sn → 运营主体名称
 const label = ref({
   visible: false, x: 0, y: 0, sn: '--',
   heading: '--', alertLevel: 'NONE', alertText: '无',
-  planCode: '无（空域巡逻）', purpose: '空域巡逻', operator: '--'
+  planCode: '无', purpose: '无计划飞行', operator: '--'
 })
 
 const renderer = useLodDroneRenderer(viewerRef)
@@ -633,12 +633,29 @@ function openLabelFor(idx, screenPos) {
     heading: meta.heading ?? '--',
     alertLevel: meta.alertLevel || 'NONE',
     alertText: meta.alertText || '无',
-    planCode: plan ? plan.plan_code : '无（空域巡逻）',
-    purpose: plan ? (plan.flight_purpose || '空域巡逻') : '空域巡逻',
+    planCode: plan ? plan.plan_code : '无',
+    purpose: plan ? (plan.flight_purpose || '空域巡逻') : '无计划飞行',
     operator: ownerByDrone.get(sn) || '--',
     x: screenPos.x + 16, y: screenPos.y - 12
   }
   if (!labelTimer) labelTimer = setInterval(updateLabelPos, 300)
+}
+
+function focusAlarm(a) {
+  const slot = droneMap.get(a.sn)
+  if (slot === undefined) { ElMessage.warning('该机暂无位置信息'); return }
+  const cart = renderer.getPosition(slot)
+  if (!cart) return
+  const carto = Cesium.Cartographic.fromCartesian(cart)
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(
+      Cesium.Math.toDegrees(carto.longitude), Cesium.Math.toDegrees(carto.latitude), carto.height + 2500),
+    duration: 1.0,
+  })
+  selectedSlot = slot
+  renderer.highlight(slot)
+  const p = viewer.scene.cartesianToCanvasCoordinates(cart, new Cesium.Cartesian2())
+  if (p) openLabelFor(slot, { x: p.x, y: p.y })
 }
 
 function updateLabelPos() {
@@ -667,7 +684,9 @@ async function loadPlanMeta() {
       fetch('/api/registry/drone/list', { headers }).then(r => r.json()),
       fetch('/api/registry/owner/list', { headers }).then(r => r.json())
     ])
-    for (const p of (planRes.data || [])) planByDrone.set(p.drone_sn, p)
+    for (const p of (planRes.data || [])) {
+      if (p.plan_status === 'APPROVED') planByDrone.set(p.drone_sn, p)
+    }
     const ownerName = new Map((ownerRes.data || []).map(o => [o.id, o.owner_name]))
     for (const r of (regRes.data || [])) ownerByDrone.set(r.drone_sn, ownerName.get(r.owner_id) || '--')
   } catch (e) { console.warn('[FlightMonitor] 计划元数据加载失败', e) }
