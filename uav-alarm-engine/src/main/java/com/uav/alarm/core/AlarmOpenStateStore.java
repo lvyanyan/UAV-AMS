@@ -57,4 +57,9 @@ public class AlarmOpenStateStore {
     public void markClosed(String droneSn, String type) {
         openKeys.remove(key(droneSn, type));
     }
+
+    /** 按完整键驱逐（陈旧清扫用） */
+    public void evictKey(String key) {
+        openKeys.remove(key);
+    }
 }

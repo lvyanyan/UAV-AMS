@@ -269,6 +269,8 @@ async function replayActiveAlarms() {
       const sn = a.droneSn
       const meta = droneMeta.get(sn) || {}
       meta.alertLevel = a.alarmLevel
+      meta.alertType = a.alarmType
+      meta.alertText = levelLabel(a.alarmLevel) + ' · ' + typeLabel(a.alarmType)
       droneMeta.set(sn, meta)
       const slot = droneMap.get(sn)
       if (slot !== undefined) renderer.setAlertLevel(slot, a.alarmLevel)
@@ -612,7 +614,7 @@ function onAlarmEvent(d) {
   const meta = droneMeta.get(sn) || {}
   meta.alertLevel = d.alarmLevel || 'GENERAL'
   meta.alertType = d.alarmType || '告警'
-  meta.alertText = `${d.alarmLevel} · ${d.alarmType}`
+  meta.alertText = `${levelLabel(d.alarmLevel || '')} · ${typeLabel(d.alarmType || '')}`
   droneMeta.set(sn, meta)
 
   alertList.value.unshift({
