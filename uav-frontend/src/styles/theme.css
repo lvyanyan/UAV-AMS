@@ -1,0 +1,132 @@
+/* ============================================================
+   UAV-AMS 深色主题 —— 与大屏外壳一致的深海军蓝色系
+   基于 Element Plus 官方 dark css-vars 做色板覆盖 + 列表页公共样式
+   ============================================================ */
+
+html.dark {
+  /* 页面/容器背景 */
+  --el-bg-color-page: #0a111d;
+  --el-bg-color: #101a2c;
+  --el-bg-color-overlay: #15223a;
+
+  /* 填充（表格斑马纹、hover、输入底等） */
+  --el-fill-color-blank: #101a2c;
+  --el-fill-color-light: #182742;
+  --el-fill-color-lighter: #142036;
+  --el-fill-color-extra-light: #121d31;
+  --el-fill-color-dark: #1d2d4a;
+  --el-fill-color-darker: #22334f;
+
+  /* 边框 */
+  --el-border-color: #24344f;
+  --el-border-color-light: #1f2e47;
+  --el-border-color-lighter: #1b2942;
+  --el-border-color-extra-light: #17253c;
+
+  /* 文本 */
+  --el-text-color-primary: #e6edf8;
+  --el-text-color-regular: #c6d2e2;
+  --el-text-color-secondary: #93a4bd;
+  --el-text-color-placeholder: #5f7189;
+  --el-text-color-disabled: #4c5c73;
+
+  --el-mask-color: rgba(4, 9, 17, 0.75);
+
+  color-scheme: dark;
+}
+
+html.dark body {
+  margin: 0;
+  background: var(--el-bg-color-page);
+  color: var(--el-text-color-primary);
+}
+
+/* ---------- 表格细节：透明底 / 斑马纹 / 悬浮高亮 ---------- */
+html.dark .el-table {
+  --el-table-border-color: var(--el-border-color-lighter);
+  --el-table-header-bg-color: #142036;
+  --el-table-header-text-color: #a9bad3;
+  --el-table-row-hover-bg-color: #1d2d4a;
+  background: transparent;
+}
+html.dark .el-table tr,
+html.dark .el-table td.el-table__cell {
+  background: transparent;
+}
+html.dark .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+  background: #121d31;
+}
+html.dark .el-table__inner-wrapper::before {
+  background-color: var(--el-border-color-lighter);
+}
+
+/* ---------- 分页/对话框/下拉等浮层贴合深色 ---------- */
+html.dark .el-pagination {
+  --el-pagination-bg-color: transparent;
+  --el-pagination-button-disabled-bg-color: transparent;
+}
+
+/* ---------- 列表页公共版式（各页面直接套用类名） ---------- */
+.page-container {
+  padding: 20px;
+  height: 100%;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 0.5px;
+}
+.page-title::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  border-radius: 2px;
+  background: var(--el-color-primary);
+  box-shadow: 0 0 8px rgba(64, 158, 255, 0.6);
+}
+
+.page-subtitle {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* 表格卡片：圆角描边 + 内边距收敛 */
+.table-card {
+  border-radius: 10px;
+  border: 1px solid var(--el-border-color-lighter);
+  background: var(--el-bg-color);
+  --el-card-border-color: var(--el-border-color-lighter);
+}
+.table-card .el-card__body {
+  padding: 12px;
+}
+
+.table-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+}

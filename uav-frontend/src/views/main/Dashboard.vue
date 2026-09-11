@@ -144,17 +144,17 @@ function statusLabel(s: string) {
 }
 
 function emptyOption(text: string): echarts.EChartsCoreOption {
-  return { graphic: [{ type: 'text', left: 'center', top: 'middle', style: { text, fill: '#909399', fontSize: 13 } }] }
+  return { graphic: [{ type: 'text', left: 'center', top: 'middle', style: { text, fill: '#5f7189', fontSize: 13 } }] }
 }
 
 function donutOption(data: { name: string; value: number; key: string }[], colorMap: Record<string, string>, defaultColor: string): echarts.EChartsCoreOption {
   return {
     tooltip: { trigger: 'item', formatter: '{b}：{c}（{d}%）' },
-    legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 12, color: '#606266' } },
+    legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 12, color: '#93a4bd' } },
     series: [{
       type: 'pie', radius: ['42%', '68%'], center: ['50%', '44%'],
-      itemStyle: { borderColor: '#fff', borderWidth: 2 },
-      label: { show: true, formatter: '{b} {c}', fontSize: 11, color: '#606266' },
+      itemStyle: { borderColor: '#101a2c', borderWidth: 2 },
+      label: { show: true, formatter: '{b} {c}', fontSize: 11, color: '#c6d2e2' },
       labelLine: { length: 8, length2: 6 },
       data: data.map(d => ({ ...d, itemStyle: { color: colorMap[d.key] || defaultColor } })),
     }],
@@ -173,17 +173,17 @@ function renderTypeChart() {
   typeChart?.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 8, right: 40, top: 8, bottom: 0, containLabel: true },
-    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f2f5' } } },
+    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2e47' } } },
     yAxis: {
       type: 'category', inverse: true,
       data: top.map(t => t[0]),
-      axisLabel: { color: '#606266', fontSize: 11 },
+      axisLabel: { color: '#c6d2e2', fontSize: 11 },
       axisLine: { show: false }, axisTick: { show: false },
     },
     series: [{
       type: 'bar', barWidth: 14, data: top.map(t => t[1]),
       itemStyle: { color: C.orange, borderRadius: [0, 7, 7, 0] },
-      label: { show: true, position: 'right', color: '#303133', fontSize: 11 },
+      label: { show: true, position: 'right', color: '#e6edf8', fontSize: 11 },
     }],
   }, true)
 }
@@ -219,8 +219,8 @@ function renderTrendChart() {
   trendChart?.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: 8, right: 16, top: 20, bottom: 0, containLabel: true },
-    xAxis: { type: 'category', boundaryGap: false, data: labels, axisLabel: { color: '#909399', fontSize: 11, interval: 4 }, axisLine: { lineStyle: { color: '#dcdfe6' } } },
-    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#f0f2f5' } }, axisLabel: { color: '#909399' } },
+    xAxis: { type: 'category', boundaryGap: false, data: labels, axisLabel: { color: '#93a4bd', fontSize: 11, interval: 4 }, axisLine: { lineStyle: { color: '#24344f' } } },
+    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#1f2e47' } }, axisLabel: { color: '#93a4bd' } },
     series: [{
       name: '告警数', type: 'line', smooth: true, data: buckets,
       lineStyle: { color: C.red, width: 2 }, itemStyle: { color: C.red },
@@ -288,7 +288,7 @@ onUnmounted(() => {
 <style scoped>
 .dashboard { padding: 20px; }
 .dash-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
-.dash-header h2 { margin: 0; color: #1f2d3d; }
+.dash-header h2 { margin: 0; color: var(--el-text-color-primary); }
 .dash-date { color: #909399; font-size: 13px; }
 .stats-row { margin-bottom: 14px; }
 .stat-card { text-align: center; cursor: pointer; border-top: 3px solid #409eff; }
@@ -297,9 +297,9 @@ onUnmounted(() => {
 .stat-card.cyan { border-top-color: #36cfc9; }
 .stat-card.orange { border-top-color: #e6a23c; }
 .stat-card.red { border-top-color: #f56c6c; }
-.stat-value { font-size: 32px; font-weight: 700; color: #1f2d3d; }
+.stat-value { font-size: 32px; font-weight: 700; color: var(--el-text-color-primary); }
 .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
-.panel :deep(.el-card__header) { padding: 10px 16px; background: #f7f9fb; }
+.panel :deep(.el-card__header) { padding: 10px 16px; background: var(--el-fill-color-lighter); }
 .chart { height: 265px; width: 100%; }
 .chart.trend { height: 225px; }
 .mid-row { margin-bottom: 14px; }

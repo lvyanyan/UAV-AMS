@@ -1,50 +1,62 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>违规处置</h2>
-      <div class="stats-row">
-        <span>告警触发后自动生成违规记录，支持自定罚则规则</span>
+      <div>
+        <h2 class="page-title">违规处置</h2>
+        <div class="page-subtitle">由危急/严重告警派生的违规台账（只读），处置动作联动告警闭环 · 共 {{ total }} 条</div>
+      </div>
+      <div class="header-actions">
+        <el-tag size="large" type="warning">待处理: {{ pendingCount }}</el-tag>
+        <el-tag size="large" type="success">已结案: {{ closedCount }}</el-tag>
       </div>
     </div>
 
-    <el-table :data="list" border stripe>
-      <el-table-column prop="droneSn" label="无人机SN" width="140" />
-      <el-table-column prop="violationType" label="违规类型" width="140">
-        <template #default="{ row }">{{ typeLabel(row.violationType) }}</template>
-      </el-table-column>
-      <el-table-column prop="violationLevel" label="等级" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.violationLevel==='CRITICAL'?'danger':row.violationLevel==='SERIOUS'?'warning':'info'">{{ row.violationLevel }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="description" label="描述" min-width="200" />
-      <el-table-column prop="penalty" label="处罚" width="180" />
-      <el-table-column prop="status" label="处理状态" width="120">
-        <template #default="{ row }">
-          <el-tag :type="row.status==='CLOSED'?'success':row.status==='PENDING'?'warning':'info'">
-            {{ row.status==='CLOSED'?'已结案':row.status==='PENDING'?'待处理':'处理中' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="createTime" label="发生时间" width="160" />
-      <el-table-column label="操作" width="150">
-        <template #default="{ row }">
-          <el-button size="small" @click="viewDetail(row)">详情</el-button>
-          <el-button v-if="row.status==='PENDING'" size="small" type="primary" @click="processItem(row)">处理</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card shadow="never" class="table-card">
+      <el-table :data="paged" border stripe v-loading="loading">
+        <el-table-column prop="droneSn" label="无人机SN" width="140" />
+        <el-table-column prop="violationType" label="违规类型" width="140">
+          <template #default="{ row }">{{ typeLabel(row.violationType) }}</template>
+        </el-table-column>
+        <el-table-column prop="violationLevel" label="等级" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.violationLevel==='CRITICAL'?'danger':'warning'">{{ levelLabel(row.violationLevel) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="描述" min-width="200" />
+        <el-table-column prop="status" label="处理状态" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.status==='CLOSED'?'success':'warning'">
+              {{ row.status==='CLOSED'?'已结案':'待处理' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createTime" label="发生时间" width="160">
+          <template #default="{ row }">{{ fmtTime(row.createTime) }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="150">
+          <template #default="{ row }">
+            <el-button size="small" @click="viewDetail(row)">详情</el-button>
+            <el-button v-if="row.status==='PENDING'" size="small" type="primary" @click="processItem(row)">处理</el-button>
+          </template>
+        </el-table-column>
+        <template #empty><el-empty description="暂无违规记录" /></template>
+      </el-table>
+      <div class="table-footer">
+        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
+          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
+      </div>
+    </el-card>
 
     <el-dialog v-model="detailDialog" title="违规详情/处置" width="500px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="无人机SN">{{ detail.droneSn }}</el-descriptions-item>
         <el-descriptions-item label="违规类型">{{ typeLabel(detail.violationType) }}</el-descriptions-item>
-        <el-descriptions-item label="等级">{{ detail.violationLevel }}</el-descriptions-item>
+        <el-descriptions-item label="等级">{{ levelLabel(detail.violationLevel) }}</el-descriptions-item>
         <el-descriptions-item label="描述">{{ detail.description }}</el-descriptions-item>
-        <el-descriptions-item label="处罚">{{ detail.penalty }}</el-descriptions-item>
+        <el-descriptions-item label="发生时间">{{ fmtTime(detail.createTime) }}</el-descriptions-item>
       </el-descriptions>
       <div v-if="detail.status==='PENDING'" style="margin-top:12px">
-        <el-input v-model="handleNote" type="textarea" :rows="2" placeholder="处理备注" />
+        <el-input v-model="handleNote" type="textarea" :rows="2" placeholder="处理备注（将标记关联告警为已处理）" />
         <el-button type="primary" style="margin-top:8px" @click="doProcess">确认处置</el-button>
       </div>
     </el-dialog>
@@ -52,42 +64,53 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { systemApi } from '@/api/system'
+import { alarmApi } from '@/api/alarm'
+import { usePaging } from '@/composables/usePaging'
 
 interface Violation {
   id?: number; droneSn: string; violationType: string; violationLevel: string
-  description: string; penalty: string; status: string; createTime: string
+  description: string; status: string; createTime: string
 }
 
-const list = ref<Violation[]>([
-  { id:1, droneSn:'SIM-00001', violationType:'AIRSPACE', violationLevel:'SERIOUS', description:'进入管制空域未报备', penalty:'罚款5000元', status:'PENDING', createTime:'2026-05-28 10:30:00' },
-  { id:2, droneSn:'SIM-00012', violationType:'ALTITUDE', violationLevel:'CRITICAL', description:'超限飞行高度达850m(限制500m)', penalty:'强制返航+禁飞30天', status:'PENDING', createTime:'2026-05-28 11:15:00' },
-  { id:3, droneSn:'SIM-00008', violationType:'NO_PLAN', violationLevel:'GENERAL', description:'无飞行计划起飞', penalty:'警告通知', status:'CLOSED', createTime:'2026-05-27 15:00:00' },
-])
-
+const list = ref<Violation[]>([])
+const loading = ref(false)
 const detailDialog = ref(false)
 const detail = ref<Violation>({} as Violation)
 const handleNote = ref('')
+const { page, size, total, paged } = usePaging(list)
+
+const pendingCount = computed(() => list.value.filter(v => v.status === 'PENDING').length)
+const closedCount = computed(() => list.value.filter(v => v.status === 'CLOSED').length)
+
+onMounted(() => loadData())
+
+async function loadData() {
+  loading.value = true
+  try { const res = await systemApi.listViolations(); list.value = (res as any).data || [] }
+  finally { loading.value = false }
+}
 
 function viewDetail(row: Violation) { detail.value = { ...row }; detailDialog.value = true }
 function processItem(row: Violation) { detail.value = { ...row }; handleNote.value = ''; detailDialog.value = true }
 
-function doProcess() {
-  const idx = list.value.findIndex(v => v.id === detail.value.id)
-  if (idx >= 0) list.value[idx].status = 'CLOSED'
-  detail.value.status = 'CLOSED'
+async function doProcess() {
+  // 违规台账只读，处置动作落到关联告警的 handled 闭环
+  await alarmApi.handle(detail.value.id!)
   ElMessage.success('违规已处置')
+  detailDialog.value = false
+  loadData()
 }
 
 function typeLabel(t: string) {
-  const map: Record<string,string> = { AIRSPACE:'空域违规', ALTITUDE:'高度超限', NO_PLAN:'无计划飞行', SPEED:'速度违规', GEOFENCE:'围栏闯入' }
+  const map: Record<string,string> = { AIRSPACE:'空域违规', ALTITUDE:'高度超限', NO_PLAN:'无计划飞行', SPEED:'速度违规', GEOFENCE:'围栏闯入', TERRAIN_COLLISION:'地形碰撞', CONFLICT:'飞行冲突', ROUTE:'航路偏离', WEATHER:'气象风险', EQUIPMENT:'设备异常', TERRAIN:'地形风险' }
   return map[t] || t
 }
+function levelLabel(l: string) {
+  const map: Record<string,string> = { CRITICAL:'危急', SERIOUS:'严重', GENERAL:'一般' }
+  return map[l] || l
+}
+function fmtTime(t?: string) { return t ? String(t).replace('T', ' ').slice(0, 19) : '--' }
 </script>
-
-<style scoped>
-.page-container { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.stats-row { color: #909399; font-size: 14px; }
-</style>

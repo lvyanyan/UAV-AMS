@@ -1,7 +1,10 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>飞行计划管理</h2>
+      <div>
+        <h2 class="page-title">飞行计划管理</h2>
+        <div class="page-subtitle">三级审批流 · 草稿提交 / 审批通过 / 拒绝 · 共 {{ total }} 个计划</div>
+      </div>
       <div class="header-actions">
         <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width:160px" @change="loadPlans">
           <el-option label="草稿" value="DRAFT" />
@@ -15,31 +18,42 @@
       </div>
     </div>
 
-    <el-table :data="plans" border stripe v-loading="loading" style="width:100%">
-      <el-table-column prop="planCode" label="计划编号" width="140" />
-      <el-table-column prop="pilotName" label="飞手" width="100">
-        <template #default="{ row }">{{ pilotNames[row.pilotId] || row.pilotName || '--' }}</template>
-      </el-table-column>
-      <el-table-column prop="droneSn" label="无人机SN" width="130" />
-      <el-table-column prop="departure" label="起飞点" min-width="120" />
-      <el-table-column prop="destination" label="降落点" min-width="120" />
-      <el-table-column prop="plannedStart" label="开始时间" width="160" />
-      <el-table-column prop="plannedEnd" label="结束时间" width="160" />
-      <el-table-column prop="altCeilingM" label="最大高度(m)" width="110" />
-      <el-table-column prop="planStatus" label="状态" width="120">
-        <template #default="{ row }">
-          <el-tag :type="statusTag(row.planStatus)">{{ statusLabel(row.planStatus) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="showDetail(row)">详情</el-button>
-          <el-button v-if="row.planStatus==='DRAFT'" size="small" type="success" @click="submitPlan(row)">提交</el-button>
-          <el-button v-if="pendingLevel(row.planStatus)" size="small" type="warning" @click="approvePlan(row)">审批</el-button>
-          <el-button size="small" type="danger" @click="rejectPlan(row)">拒绝</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card shadow="never" class="table-card">
+      <el-table :data="paged" border stripe v-loading="loading" style="width:100%">
+        <el-table-column prop="planCode" label="计划编号" width="140" />
+        <el-table-column prop="pilotName" label="飞手" width="100">
+          <template #default="{ row }">{{ pilotNames[row.pilotId] || row.pilotName || '--' }}</template>
+        </el-table-column>
+        <el-table-column prop="droneSn" label="无人机SN" width="130" />
+        <el-table-column prop="departure" label="起飞点" min-width="120" />
+        <el-table-column prop="destination" label="降落点" min-width="120" />
+        <el-table-column prop="plannedStart" label="开始时间" width="150">
+          <template #default="{ row }">{{ fmtTime(row.plannedStart) }}</template>
+        </el-table-column>
+        <el-table-column prop="plannedEnd" label="结束时间" width="150">
+          <template #default="{ row }">{{ fmtTime(row.plannedEnd) }}</template>
+        </el-table-column>
+        <el-table-column prop="altCeilingM" label="最大高度(m)" width="110" />
+        <el-table-column prop="planStatus" label="状态" width="120">
+          <template #default="{ row }">
+            <el-tag :type="statusTag(row.planStatus)">{{ statusLabel(row.planStatus) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="280" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="showDetail(row)">详情</el-button>
+            <el-button v-if="row.planStatus==='DRAFT'" size="small" type="success" @click="submitPlan(row)">提交</el-button>
+            <el-button v-if="pendingLevel(row.planStatus)" size="small" type="warning" @click="approvePlan(row)">审批</el-button>
+            <el-button size="small" type="danger" @click="rejectPlan(row)">拒绝</el-button>
+          </template>
+        </el-table-column>
+        <template #empty><el-empty description="暂无飞行计划" /></template>
+      </el-table>
+      <div class="table-footer">
+        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
+          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
+      </div>
+    </el-card>
 
     <!-- 新建/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="editingPlan.id ? '编辑计划' : '新建计划'" width="600px">
@@ -76,6 +90,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { flightPlanApi, type FlightPlan } from '@/api/flight-plan'
 import { pilotApi } from '@/api/pilot'
+import { usePaging } from '@/composables/usePaging'
 
 const plans = ref<FlightPlan[]>([])
 const loading = ref(false)
@@ -85,6 +100,7 @@ const approveDialog = ref(false)
 const editingPlan = ref<FlightPlan>({})
 const currentPlan = ref<FlightPlan>({})
 const approveComment = ref('')
+const { page, size, total, paged } = usePaging(plans)
 
 const form = ref<FlightPlan>({
   pilotName: '', droneSn: '', flightArea: '', maxAltitude: 120, flightPurpose: '',
@@ -178,10 +194,5 @@ function statusLabel(s: string) {
   const map: Record<string,string> = { DRAFT:'草稿', PENDING_LEVEL1:'一级审批中', PENDING_LEVEL2:'二级审批中', PENDING_LEVEL3:'三级审批中', APPROVED:'已批准', REJECTED:'已拒绝', MILITARY_CANCELLED:'军事取消' }
   return map[s] || s
 }
+function fmtTime(t?: string) { return t ? String(t).replace('T', ' ').slice(0, 16) : '--' }
 </script>
-
-<style scoped>
-.page-container { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-.header-actions { display: flex; gap: 12px; }
-</style>

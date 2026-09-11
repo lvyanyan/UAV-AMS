@@ -37,4 +37,7 @@ export const systemApi = {
 
   // 审计日志
   listAuditLogs: (): Promise<R<any[]>> => request.get('/audit/list'),
+
+  // 违规台账（由危急/严重告警派生，只读）
+  listViolations: (): Promise<R<any[]>> => request.get('/violation/list'),
 }

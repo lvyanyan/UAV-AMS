@@ -46,17 +46,15 @@
 
 ## 任务三：列表页 UI 统一美化
 
-**范围**：Airspace.vue / Registry.vue / Pilot.vue / FlightPlan.vue / AlarmCenter.vue / Violation.vue / System.vue
+**实施记录（2026-09-11 完成验收）**
+- **整体深色主题**（用户反馈"黑壳白内容不和谐"）：引入 Element Plus 官方 dark css-vars（`html.dark`）+ `src/styles/theme.css` 深海军蓝色板覆盖（页面 #0a111d / 卡片 #101a2c / 边框 #24344f 系），全站内容区与深色外壳同色系；`src/main.ts` 注册全部 Element Plus 图标（修复侧栏图标一直未渲染的旧问题）。
+- 公共组件：`composables/usePaging.ts` 前端分页（页码越界自动收敛）；theme.css 提供 page-header/page-title(主色竖条)/page-subtitle/header-actions/table-card/table-footer 公共类。
+- 七页统一规范落地：大标题+副标题+操作区右对齐页头、el-card 表格卡片、el-empty 空态、el-pagination、时间 `YYYY-MM-DD HH:mm`、tag 语义配色（字段映射未动）。Registry/System 双 tab 页分别独立分页实例。
+- **Violation 假数据清除**：uav-system SysQueryController 新增 `/api/violation/list` 只读接口（同库派生 alarm_record 危急/严重告警为违规台账，处置联动 `/api/alarm/{id}/handle`），网关路由补 `/api/violation/**`；System 页删除前端假数据兜底，并修复 user/audit 返回字段与前端契约的映射。
+- **顺带修复存量 403**：SysQueryController 的 JdbcTemplate lambda 误配 ResultSetExtractor 重载（缺 rs.next()）导致 user/role/audit 一直 500→错误转发被安全层转成 403、前端永远走假数据兜底——本会话重写时修正为 RowCallbackHandler。
+- 验收：8 页 e2e 全部渲染正常（airspace 9 行/pilot 6/flight-plan 7/alarm 20/violation 20 真实数据/system 5/registry 3），无 pageerror，截图 `%TEMP%\uav_shot\t_*.png`。
 
-- 统一规范：页头（大标题 + 副标题 + 操作区右对齐）、表格卡片化（el-card 包裹、圆角、悬浮高亮）、状态 tag 配色全局一致、时间统一 `YYYY-MM-DD HH:mm` 格式化、空数据显示 el-empty、列表加分页（el-pagination，前端分页即可）。
-- 字段映射（2026-09-11 已对齐，勿回退）：
-  - Airspace：airspaceName/airspaceCode/airspaceType/altFloorM/altCeilingM/startTime/endTime/isActive
-  - Registry：owner(idNumber/address/registerStatus)、drone(droneSn/droneModel/droneType/weightG/registrationId)
-  - Pilot：pilotName/idNumber/licenseLevel/licenseNo/licenseExpire/status
-  - FlightPlan：planCode/pilotId(前端映射飞手姓名)/droneSn/departure/destination/plannedStart/plannedEnd/altCeilingM/planStatus
-- 已知残留：Violation.vue 与 System.vue 的后端接口可能不存在（缺控制器），若 500/404 需在 uav-system/uav-flight-plan 侧补只读接口，勿在前端造假数据。
-
-**状态**：[ ] 未开始
+**状态**：[x] 已完成（2026-09-11）
 
 ---
 

@@ -1,8 +1,8 @@
 <template>
   <div class="main-layout">
     <aside class="sidebar">
-      <div class="logo" @click="$router.push('/dashboard')">🛩️ UAV-AMS</div>
-      <el-menu :default-active="currentRoute" router background-color="transparent" text-color="#8899aa" active-text-color="#409EFF" style="border-right:none">
+      <div class="logo" @click="$router.push('/dashboard')"><span class="logo-icon">🛩️</span> UAV-AMS</div>
+      <el-menu :default-active="currentRoute" router background-color="transparent" text-color="#8fa2ba" active-text-color="#66b1ff" style="border-right:none" class="side-menu">
         <el-menu-item index="/dashboard"><el-icon><Odometer /></el-icon><span>仪表盘</span></el-menu-item>
         <el-menu-item index="/flight-monitor"><el-icon><Monitor /></el-icon><span>飞行监控</span></el-menu-item>
         <el-menu-item index="/flight-plan"><el-icon><Document /></el-icon><span>飞行计划</span></el-menu-item>
@@ -30,10 +30,14 @@ function handleLogout() { userStore.logout(); router.push('/login') }
 </script>
 
 <style scoped>
-.main-layout { display:flex; height:100vh; background:#0f1923; }
-.sidebar { width:220px; display:flex; flex-direction:column; background:rgba(255,255,255,.03); border-right:1px solid rgba(255,255,255,.06); }
-.logo { color:#fff; font-size:18px; font-weight:bold; padding:20px; cursor:pointer; text-align:center; }
-.sidebar .el-menu { flex:1; overflow-y:auto; }
-.user-info { padding:16px; color:#889; font-size:13px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid rgba(255,255,255,.06); }
+.main-layout { display:flex; height:100vh; background:var(--el-bg-color-page); }
+.sidebar { width:220px; display:flex; flex-direction:column; background:rgba(255,255,255,.02); border-right:1px solid var(--el-border-color-lighter); }
+.logo { color:var(--el-text-color-primary); font-size:18px; font-weight:bold; padding:20px; cursor:pointer; text-align:center; letter-spacing:1px; }
+.logo-icon { filter: drop-shadow(0 0 6px rgba(64,158,255,.5)); }
+.sidebar .el-menu { flex:1; overflow-y:auto; border-right:none; }
+.side-menu :deep(.el-menu-item) { margin:2px 10px; border-radius:8px; height:46px; }
+.side-menu :deep(.el-menu-item:hover) { background:rgba(64,158,255,.08); }
+.side-menu :deep(.el-menu-item.is-active) { background:rgba(64,158,255,.14); }
+.user-info { padding:16px; color:var(--el-text-color-secondary); font-size:13px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--el-border-color-lighter); }
 .main-content { flex:1; overflow:hidden; position:relative; }
 </style>

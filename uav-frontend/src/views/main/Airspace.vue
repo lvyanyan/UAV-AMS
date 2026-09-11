@@ -1,38 +1,50 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>空域管理</h2>
-      <el-button type="primary" @click="showCreate">新增空域</el-button>
+      <div>
+        <h2 class="page-title">空域管理</h2>
+        <div class="page-subtitle">管制区 / 作业区 / 走廊等空域划设与启停管理 · 共 {{ total }} 个</div>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" @click="showCreate">新增空域</el-button>
+      </div>
     </div>
 
-    <el-table :data="list" border stripe v-loading="loading">
-      <el-table-column prop="airspaceName" label="名称" min-width="150" />
-      <el-table-column prop="airspaceCode" label="编码" width="150" />
-      <el-table-column prop="airspaceType" label="类型" width="110">
-        <template #default="{ row }">
-          <el-tag :type="typeTag(row.airspaceType)">{{ typeLabel(row.airspaceType) }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="altFloorM" label="底高(m)" width="90" />
-      <el-table-column prop="altCeilingM" label="顶高(m)" width="90" />
-      <el-table-column prop="startTime" label="生效时间" width="120">
-        <template #default="{ row }">{{ fmtTime(row.startTime) }}</template>
-      </el-table-column>
-      <el-table-column prop="endTime" label="失效时间" width="120">
-        <template #default="{ row }">{{ fmtTime(row.endTime) }}</template>
-      </el-table-column>
-      <el-table-column prop="isActive" label="状态" width="90">
-        <template #default="{ row }">
-          <el-tag :type="row.isActive ? 'success' : 'info'">{{ row.isActive ? '启用中' : '已停用' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="editItem(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="deleteItem(row)">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card shadow="never" class="table-card">
+      <el-table :data="paged" border stripe v-loading="loading">
+        <el-table-column prop="airspaceName" label="名称" min-width="150" />
+        <el-table-column prop="airspaceCode" label="编码" width="150" />
+        <el-table-column prop="airspaceType" label="类型" width="110">
+          <template #default="{ row }">
+            <el-tag :type="typeTag(row.airspaceType)">{{ typeLabel(row.airspaceType) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="altFloorM" label="底高(m)" width="90" />
+        <el-table-column prop="altCeilingM" label="顶高(m)" width="90" />
+        <el-table-column prop="startTime" label="生效时间" width="150">
+          <template #default="{ row }">{{ fmtTime(row.startTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="endTime" label="失效时间" width="150">
+          <template #default="{ row }">{{ fmtTime(row.endTime) }}</template>
+        </el-table-column>
+        <el-table-column prop="isActive" label="状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.isActive ? 'success' : 'info'">{{ row.isActive ? '启用中' : '已停用' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="editItem(row)">编辑</el-button>
+            <el-button size="small" type="danger" @click="deleteItem(row)">删除</el-button>
+          </template>
+        </el-table-column>
+        <template #empty><el-empty description="暂无空域数据" /></template>
+      </el-table>
+      <div class="table-footer">
+        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
+          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
+      </div>
+    </el-card>
 
     <el-dialog v-model="dialogVisible" :title="editing.id ? '编辑空域' : '新增空域'" width="550px">
       <el-form :model="form" label-width="110px">
@@ -64,11 +76,13 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { airspaceApi, type Airspace } from '@/api/airspace'
+import { usePaging } from '@/composables/usePaging'
 
 const list = ref<Airspace[]>([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const editing = ref<Airspace>({})
+const { page, size, total, paged } = usePaging(list)
 
 const form = ref<Airspace>({
   airspaceName: '', airspaceType: 'DEMO', altFloorM: 0, altCeilingM: 120,
@@ -112,8 +126,3 @@ function fmtTime(t?: string) {
   return t ? t.replace('T', ' ').slice(0, 16) : '--'
 }
 </script>
-
-<style scoped>
-.page-container { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-</style>

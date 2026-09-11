@@ -1,19 +1,24 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>实名登记管理</h2>
-      <el-tabs v-model="tab" style="flex:1;margin-left:20px">
+      <div>
+        <h2 class="page-title">实名登记管理</h2>
+        <div class="page-subtitle">所有人 / 无人机实名登记与审核 · 所有人 {{ owners.length }} 条 · 无人机 {{ drones.length }} 架</div>
+      </div>
+      <div class="header-actions">
+        <el-button v-if="tab==='owner'" type="primary" @click="showOwnerDialog">新增所有人</el-button>
+        <el-button v-else type="primary" @click="showDroneDialog">新增无人机</el-button>
+      </div>
+    </div>
+
+    <el-card shadow="never" class="table-card">
+      <el-tabs v-model="tab">
         <el-tab-pane label="所有人登记" name="owner" />
         <el-tab-pane label="无人机登记" name="drone" />
       </el-tabs>
-    </div>
 
-    <!-- 所有人登记 -->
-    <div v-if="tab==='owner'">
-      <div style="margin-bottom:12px">
-        <el-button type="primary" @click="showOwnerDialog">新增所有人</el-button>
-      </div>
-      <el-table :data="owners" border stripe>
+      <!-- 所有人登记 -->
+      <el-table v-if="tab==='owner'" :data="ownerPage.paged.value" border stripe>
         <el-table-column prop="ownerName" label="姓名/单位" width="140" />
         <el-table-column prop="idNumber" label="证件号" width="180" />
         <el-table-column prop="phone" label="电话" width="130" />
@@ -31,15 +36,15 @@
             <el-button v-if="row.registerStatus==='PENDING'" size="small" type="danger" @click="rejectOwner(row)">拒绝</el-button>
           </template>
         </el-table-column>
+        <template #empty><el-empty description="暂无所有人登记" /></template>
       </el-table>
-    </div>
-
-    <!-- 无人机登记 -->
-    <div v-if="tab==='drone'">
-      <div style="margin-bottom:12px">
-        <el-button type="primary" @click="showDroneDialog">新增无人机</el-button>
+      <div v-if="tab==='owner'" class="table-footer">
+        <el-pagination v-model:current-page="ownerPage.page.value" v-model:page-size="ownerPage.size.value" :total="ownerPage.total.value"
+          layout="total, prev, pager, next" background />
       </div>
-      <el-table :data="drones" border stripe>
+
+      <!-- 无人机登记 -->
+      <el-table v-if="tab==='drone'" :data="dronePage.paged.value" border stripe>
         <el-table-column prop="droneSn" label="SN" width="150" />
         <el-table-column prop="droneModel" label="型号" width="120" />
         <el-table-column prop="droneType" label="类型" width="100" />
@@ -58,8 +63,13 @@
             <el-button v-if="row.registerStatus==='PENDING'" size="small" type="danger" @click="rejectDrone(row)">拒绝</el-button>
           </template>
         </el-table-column>
+        <template #empty><el-empty description="暂无无人机登记" /></template>
       </el-table>
-    </div>
+      <div v-if="tab==='drone'" class="table-footer">
+        <el-pagination v-model:current-page="dronePage.page.value" v-model:page-size="dronePage.size.value" :total="dronePage.total.value"
+          layout="total, prev, pager, next" background />
+      </div>
+    </el-card>
 
     <!-- Owner Dialog -->
     <el-dialog v-model="ownerDialog" title="新增所有人" width="450px">
@@ -97,6 +107,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { registryApi, type UavOwner, type UavRegistration } from '@/api/registry'
+import { usePaging } from '@/composables/usePaging'
 
 const tab = ref('owner')
 const owners = ref<UavOwner[]>([])
@@ -105,6 +116,8 @@ const ownerDialog = ref(false)
 const droneDialog = ref(false)
 const ownerForm = ref<UavOwner>({ ownerName:'', idNumber:'', phone:'', email:'', address:'' })
 const droneForm = ref<UavRegistration>({ ownerId:1, droneSn:'', droneModel:'', droneType:'', droneWeight:0 })
+const ownerPage = usePaging(owners, 10)
+const dronePage = usePaging(drones, 10)
 
 onMounted(() => { loadOwners(); loadDrones() })
 
@@ -121,8 +134,3 @@ async function saveDrone() { await registryApi.registerDrone(droneForm.value); E
 async function approveDrone(row: UavRegistration) { await registryApi.approveDrone(row.id!); ElMessage.success('已通过'); loadDrones() }
 async function rejectDrone(row: UavRegistration) { await registryApi.rejectDrone(row.id!); ElMessage.success('已拒绝'); loadDrones() }
 </script>
-
-<style scoped>
-.page-container { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-</style>

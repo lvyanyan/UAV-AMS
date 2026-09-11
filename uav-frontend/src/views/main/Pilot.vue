@@ -1,31 +1,45 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>飞手管理</h2>
-      <el-button type="primary" @click="showCreate">新增飞手</el-button>
+      <div>
+        <h2 class="page-title">飞手管理</h2>
+        <div class="page-subtitle">执照资质 / 体检记录 / 停飞恢复 · 共 {{ total }} 名飞手</div>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" @click="showCreate">新增飞手</el-button>
+      </div>
     </div>
 
-    <el-table :data="list" border stripe v-loading="loading">
-      <el-table-column prop="pilotName" label="姓名" width="100" />
-      <el-table-column prop="idNumber" label="身份证号" width="180" />
-      <el-table-column prop="phone" label="电话" width="130" />
-      <el-table-column prop="licenseNo" label="执照号" width="180" />
-      <el-table-column prop="licenseLevel" label="执照等级" width="160" />
-      <el-table-column prop="licenseExpire" label="执照有效期" width="120" />
-      <el-table-column prop="status" label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.status==='ACTIVE'?'success':'danger'">{{ row.status==='ACTIVE'?'正常':'停飞' }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="280" fixed="right">
-        <template #default="{ row }">
-          <el-button size="small" @click="editItem(row)">编辑</el-button>
-          <el-button size="small" @click="showMedical(row)">体检</el-button>
-          <el-button v-if="row.status==='ACTIVE'" size="small" type="danger" @click="suspendItem(row)">停飞</el-button>
-          <el-button v-else size="small" type="success" @click="reactivateItem(row)">恢复</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <el-card shadow="never" class="table-card">
+      <el-table :data="paged" border stripe v-loading="loading">
+        <el-table-column prop="pilotName" label="姓名" width="100" />
+        <el-table-column prop="idNumber" label="身份证号" width="180" />
+        <el-table-column prop="phone" label="电话" width="130" />
+        <el-table-column prop="licenseNo" label="执照号" width="180" />
+        <el-table-column prop="licenseLevel" label="执照等级" width="160" />
+        <el-table-column prop="licenseExpire" label="执照有效期" width="130">
+          <template #default="{ row }">{{ fmtDate(row.licenseExpire) }}</template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.status==='ACTIVE'?'success':'danger'">{{ row.status==='ACTIVE'?'正常':'停飞' }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="280" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" @click="editItem(row)">编辑</el-button>
+            <el-button size="small" @click="showMedical(row)">体检</el-button>
+            <el-button v-if="row.status==='ACTIVE'" size="small" type="danger" @click="suspendItem(row)">停飞</el-button>
+            <el-button v-else size="small" type="success" @click="reactivateItem(row)">恢复</el-button>
+          </template>
+        </el-table-column>
+        <template #empty><el-empty description="暂无飞手数据" /></template>
+      </el-table>
+      <div class="table-footer">
+        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
+          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
+      </div>
+    </el-card>
 
     <el-dialog v-model="dialogVisible" :title="editing.id?'编辑飞手':'新增飞手'" width="500px">
       <el-form :model="form" label-width="100px">
@@ -55,6 +69,7 @@
         <el-table-column prop="examOrg" label="体检机构" min-width="150" />
         <el-table-column prop="result" label="结果" width="80" />
         <el-table-column prop="expireDate" label="有效期至" width="120" />
+        <template #empty><el-empty description="暂无体检记录" :image-size="60" /></template>
       </el-table>
       <div style="margin-top:12px">
         <el-form :model="medicalForm" label-width="80px" inline>
@@ -72,6 +87,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { pilotApi, type UavPilot, type UavPilotMedical } from '@/api/pilot'
+import { usePaging } from '@/composables/usePaging'
 
 const list = ref<UavPilot[]>([])
 const loading = ref(false)
@@ -82,6 +98,7 @@ const currentPilotId = ref(0)
 const medicalList = ref<UavPilotMedical[]>([])
 const form = ref<UavPilot>({ pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'视距内驾驶员', licenseExpire:'' })
 const medicalForm = ref<UavPilotMedical>({ pilotId:0, examDate:'', examOrg:'', result:'PASS' })
+const { page, size, total, paged } = usePaging(list)
 
 onMounted(() => loadData())
 
@@ -117,9 +134,6 @@ async function uploadMedical() {
   ElMessage.success('上传成功')
   showMedical({ id: currentPilotId.value } as UavPilot)
 }
-</script>
 
-<style scoped>
-.page-container { padding: 20px; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-</style>
+function fmtDate(t?: string) { return t ? t.replace('T', ' ').slice(0, 10) : '--' }
+</script>
