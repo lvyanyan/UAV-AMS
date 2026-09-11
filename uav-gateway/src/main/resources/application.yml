@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 18080 # 前端 vite 代理 /api → 18080；勿改回 8080（与 wslrelay 端口冲突）
 
 spring:
   application:
@@ -33,11 +33,11 @@ spring:
           predicates:
             - Path=/api/flight-plan/**
         - id: uav-alarm-engine
-          uri: http://localhost:18082
+          uri: http://localhost:8095
           predicates:
             - Path=/api/alarm/**
         - id: uav-risk-assessment
-          uri: http://localhost:18083
+          uri: http://localhost:8096
           predicates:
             - Path=/api/risk/**
         - id: uav-airspace-controller

@@ -5,7 +5,7 @@ spring:
   application:
     name: uav-airspace-controller
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:172.27.19.223:9092}
     consumer:
       group-id: airspace-controller
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer

@@ -9,7 +9,7 @@ spring:
       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
       - org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: 172.27.19.223:9092
     consumer:
       group-id: track-fusion
       auto-offset-reset: latest
