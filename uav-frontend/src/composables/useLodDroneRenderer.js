@@ -266,8 +266,17 @@ export function useLodDroneRenderer(viewerRef) {
 
   function destroy() { _busy = false; destroyInternal(); console.log('[LOD] 🗑️ 已销毁') }
 
+  // 读取指定槽位无人机当前的三维坐标（供 DOM 标牌跟随投影）
+  function getPosition(idx) {
+    try {
+      if (_level === 'high') { const bp = getBp(idx); return bp ? bp.position : null }
+      if (_level === 'mid') { const p = getPt(idx); return p ? p.position : null }
+      const b = getBb(idx); return b ? b.position : null
+    } catch (e) { return null }
+  }
+
   return {
-    init, addDrones, upsertDrone, highlight, destroy,
+    init, addDrones, upsertDrone, highlight, destroy, getPosition,
     getCount: () => _count,
     getCurrentLevel: () => _level,
     isInitialized: () => _ready,
