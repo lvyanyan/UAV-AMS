@@ -21,6 +21,12 @@ public class AirspaceController {
         return R.ok(service.lambdaQuery().orderByAsc(Airspace::getCreateTime).list());
     }
 
+    // 前端 airspaceApi.list() 调用的是 /list；显式注册，避免被 /{id} 当 Long 解析 400
+    @GetMapping("/list")
+    public R<List<Airspace>> listAlias() {
+        return list();
+    }
+
     @GetMapping("/{id}")
     public R<Airspace> getById(@PathVariable Long id) {
         return R.ok(service.getById(id));
