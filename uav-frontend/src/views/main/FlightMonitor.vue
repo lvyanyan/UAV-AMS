@@ -2,16 +2,29 @@
   <div class="flight-monitor">
     <div ref="cesiumContainer" class="cesium-container" />
     <div class="top-stats">
-      <span>🛸 在线: {{ droneCount }}</span>
+      <span>🛸 在线: {{ droneCount.toLocaleString() }}</span>
       <span>⚠️ 告警: {{ alarmCount }}</span>
-      <span>🚁 LOD层: {{ currentLevel }}</span>
+      <span v-if="mode === 'standard'">🚁 LOD层: {{ currentLevel }}</span>
+      <span v-else>🚀 百万模式 · {{ millionFrameMode }}</span>
     </div>
     <div class="toolbar">
+      <button @click="toggleMode" :disabled="switching" :class="{ active: mode === 'million' }">
+        🚀 {{ mode === 'million' ? '返回标准模式' : '百万模式' }}
+      </button>
       <button @click="toggleAirspace">🗺️ {{ showAirspace ? '隐藏' : '显示' }}空域</button>
       <button @click="toggleFps">📊 FPS</button>
     </div>
     <div v-if="showFps" class="fps-overlay">{{ fpsText }}</div>
+    <div v-if="millionDropped > 0" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker/渲染跟不上）</div>
     <AlertPanel :alerts="alertList" />
+    <!-- 百万模式：点击聚合点/原始点出现的简化标牌 -->
+    <div v-if="millionLabel.visible" class="drone-label" :style="{ left: millionLabel.x + 'px', top: millionLabel.y + 'px' }" @click.stop>
+      <div class="dl-head"><span class="dl-sn">🛸 机群目标 #{{ millionLabel.index }}</span><span class="dl-close" @click="closeMillionLabel">✕</span></div>
+      <div class="dl-row"><span class="dl-k">经度</span><span>{{ millionLabel.lon }}</span></div>
+      <div class="dl-row"><span class="dl-k">纬度</span><span>{{ millionLabel.lat }}</span></div>
+      <div class="dl-row"><span class="dl-k">高度</span><span>{{ millionLabel.alt }} m</span></div>
+      <div class="dl-row"><span class="dl-k">告警</span><span :class="'alv-' + millionLabel.alertClass">{{ millionLabel.alertText }}</span></div>
+    </div>
     <!-- 点击无人机出现的 DOM 标牌 -->
     <div v-if="label.visible" class="drone-label" :style="{ left: label.x + 'px', top: label.y + 'px' }" @click.stop>
       <div class="dl-head"><span class="dl-sn">🛸 {{ label.sn }}</span><span class="dl-close" @click="closeLabel">✕</span></div>
@@ -30,6 +43,7 @@ import * as Cesium from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { CESIUM_CONFIG } from '@/config/cesiumConfig.js'
 import { useLodDroneRenderer } from '@/composables/useLodDroneRenderer.js'
+import { useMillionRenderer } from '@/composables/useMillionRenderer.js'
 import AlertPanel from '@/components/AlertPanel.vue'
 
 const cesiumContainer = ref(null)
@@ -42,11 +56,18 @@ const showFps = ref(false)
 const fpsText = ref('')
 const alertList = ref([])
 
+// ── 百万模式状态 ──
+const FLEET_PORT = 8091
+const mode = ref('standard')            // 'standard' | 'million'
+const switching = ref(false)            // 切换中禁用按钮，防止两个渲染器半初始化
+const millionFrameMode = ref('连接中')   // 聚合 | 原始 | 连接中 | 断开
+const millionDropped = ref(0)
+const millionLabel = ref({ visible: false, x: 0, y: 0, index: -1, lon: '--', lat: '--', alt: '--', alertClass: 'NONE', alertText: '无' })
+
 let viewer = null
 let ws = null
 let wsReconnectTimer = null
 let statsTimer = null
-let fpsTimer = null
 let labelTimer = null
 let airspaceEntities = []
 let selectedSlot = -1
@@ -63,6 +84,7 @@ const label = ref({
 })
 
 const renderer = useLodDroneRenderer(viewerRef)
+const millionRenderer = useMillionRenderer(viewerRef)
 // drone ID → slot index 映射表
 const droneMap = new Map()
 let nextSlot = 0
@@ -70,6 +92,19 @@ let nextSlot = 0
 let buffer = []
 let initTimer = null
 let initStarted = false
+
+// 百万模式运行时句柄
+let fleetWs = null
+let fleetWsReconnectTimer = null
+let fleetWorker = null
+let workerBusy = false      // 同一时刻只让 Worker 处理一帧，丢弃来的新帧
+let pendingFrame = null     // Worker 回传、待 rAF 消费的最新一帧
+let camListener = null
+let statsPollTimer = null
+let rafId = 0
+let _lastVpSend = 0
+let rafFrameCount = 0
+let rafLastFpsTime = 0
 
 // ── 高德底图 ──
 function initMap() {
@@ -115,6 +150,177 @@ function connectWebSocket() {
     } catch (_) {}
   }
   ws.onclose = () => { wsReconnectTimer = setTimeout(connectWebSocket, 2000) }
+}
+
+// ══ 百万模式：二进制聚合通道（uav-realtime :8091/fleet）══
+
+// Worker：二进制帧解析 + ECEF 转换（零拷贝 Transferable）
+function startFleetWorker() {
+  fleetWorker = new Worker(new URL('../../worker/fleetWorker.js', import.meta.url), { type: 'module' })
+  fleetWorker.onmessage = (e) => {
+    workerBusy = false
+    pendingFrame = e.data // 只保留最新，旧的被覆盖即丢弃
+  }
+}
+
+function connectFleetWs() {
+  if (fleetWs && (fleetWs.readyState === WebSocket.OPEN || fleetWs.readyState === WebSocket.CONNECTING)) return
+  fleetWs = new WebSocket(`ws://localhost:${FLEET_PORT}/fleet`)
+  fleetWs.binaryType = 'arraybuffer'
+  fleetWs.onopen = () => {
+    millionFrameMode.value = '聚合'
+    clearTimeout(fleetWsReconnectTimer)
+    sendViewport(true)
+  }
+  fleetWs.onclose = () => {
+    if (mode.value !== 'million') return
+    millionFrameMode.value = '断开'
+    fleetWsReconnectTimer = setTimeout(connectFleetWs, 3000)
+  }
+  fleetWs.onerror = () => fleetWs && fleetWs.close()
+  fleetWs.onmessage = (e) => {
+    if (workerBusy) { millionDropped.value++; return }
+    workerBusy = true
+    fleetWorker.postMessage(e.data, [e.data])
+  }
+}
+
+// 相机变动 → 上报视锥（服务端按视野聚合/裁剪），200ms 节流
+function sendViewport(force) {
+  if (!viewer || !fleetWs || fleetWs.readyState !== WebSocket.OPEN) return
+  const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid)
+  if (!rect) return
+  const now = Date.now()
+  if (!force && now - _lastVpSend < 200) return
+  _lastVpSend = now
+  fleetWs.send(JSON.stringify({
+    h: Math.round(viewer.camera.positionCartographic.height),
+    minLat: +Cesium.Math.toDegrees(rect.south).toFixed(5),
+    maxLat: +Cesium.Math.toDegrees(rect.north).toFixed(5),
+    minLon: +Cesium.Math.toDegrees(rect.west).toFixed(5),
+    maxLon: +Cesium.Math.toDegrees(rect.east).toFixed(5),
+    full: false
+  }))
+}
+
+// 在线数以服务端 /stats 为准（cell 聚合帧的 count 是网格数，不是机群数）
+function pollFleetStats() {
+  fetch(`http://localhost:${FLEET_PORT}/stats`).then(r => r.json()).then(s => {
+    if (mode.value === 'million' && s.count) droneCount.value = s.count
+  }).catch(() => {})
+}
+
+// 主渲染循环：消费 Worker 解析好的最新一帧 + FPS 统计 + 百万标牌跟随
+function mainLoop() {
+  rafId = requestAnimationFrame(mainLoop)
+  const now = performance.now()
+  if (showFps.value) {
+    rafFrameCount++
+    if (now - rafLastFpsTime >= 1000) {
+      fpsText.value = `FPS: ${Math.round(rafFrameCount / ((now - rafLastFpsTime) / 1000))}`
+      rafFrameCount = 0
+      rafLastFpsTime = now
+    }
+  }
+  if (mode.value !== 'million') return
+  if (pendingFrame) {
+    const data = pendingFrame
+    pendingFrame = null
+    millionFrameMode.value = data.isCell ? '聚合' : '原始'
+    millionRenderer.updateBatch(data.pos, data.meta, data.ll, data.count, data.isCell)
+  }
+  if (millionLabel.value.visible) updateMillionLabelPos()
+}
+
+// ── 模式切换 ──
+async function toggleMode() {
+  if (switching.value) return
+  switching.value = true
+  try {
+    if (mode.value === 'standard') await enterMillionMode()
+    else await exitMillionMode()
+  } finally {
+    switching.value = false
+  }
+}
+
+async function enterMillionMode() {
+  // 1) 停标准渲染链路（清缓冲，防止半初始化状态遗留）
+  clearTimeout(initTimer); initTimer = null
+  initStarted = false
+  buffer = []
+  droneMap.clear(); slotToSn = []; nextSlot = 0
+  renderer.destroy()
+  closeLabel()
+
+  // 2) 起百万链路：Worker + WS + 视锥上报 + 在线数轮询
+  millionRenderer.init()
+  startFleetWorker()
+  connectFleetWs()
+  camListener = viewer.camera.changed.addEventListener(() => sendViewport(false))
+  statsPollTimer = setInterval(pollFleetStats, 2000)
+  pollFleetStats()
+  // 拉高到 50km 俯瞰全机群：视角适配百万规模，且高空走轻量聚合帧
+  viewer.camera.flyTo({
+    destination: Cesium.Cartesian3.fromDegrees(116.4074, 39.9042, 50000),
+    orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+    duration: 1.5
+  })
+  mode.value = 'million'
+  currentLevel.value = '--'
+  console.log('[FlightMonitor] 🚀 进入百万模式（二进制 :8091/fleet）')
+}
+
+async function exitMillionMode() {
+  clearTimeout(fleetWsReconnectTimer)
+  if (camListener) { camListener(); camListener = null }
+  clearInterval(statsPollTimer); statsPollTimer = null
+  if (fleetWs) { try { fleetWs.close() } catch (e) {} fleetWs = null }
+  if (fleetWorker) { fleetWorker.terminate(); fleetWorker = null }
+  workerBusy = false
+  pendingFrame = null
+  millionDropped.value = 0
+  millionFrameMode.value = '连接中'
+  millionRenderer.destroy()
+  closeMillionLabel()
+
+  // 重建标准链路：清空映射，遥测缓冲 1 秒后自动 flushBuffer 重建
+  droneMap.clear(); slotToSn = []; nextSlot = 0
+  buffer = []
+  initStarted = false
+  droneCount.value = 0
+  mode.value = 'standard'
+  console.log('[FlightMonitor] 🛬 返回标准模式（JSON :8090/ws）')
+}
+
+// ── 百万模式标牌 ──
+function openMillionLabel(idx, screenPos) {
+  const d = millionRenderer.getPointData(idx)
+  if (!d) return
+  const carto = Cesium.Cartographic.fromCartesian(d.cartesian)
+  const alertNames = { 0: ['NONE', '无'], 1: ['WARNING', '警告'], 2: ['CRITICAL', '危急'] }
+  const [cls, text] = alertNames[d.alert] || alertNames[0]
+  millionLabel.value = {
+    visible: true, index: idx,
+    lon: Cesium.Math.toDegrees(carto.longitude).toFixed(5),
+    lat: Cesium.Math.toDegrees(carto.latitude).toFixed(5),
+    alt: Math.round(carto.height),
+    alertClass: cls, alertText: text,
+    x: screenPos.x + 16, y: screenPos.y - 12
+  }
+}
+
+function updateMillionLabelPos() {
+  const idx = millionLabel.value.index
+  if (idx < 0 || !viewer) return
+  const d = millionRenderer.getPointData(idx)
+  if (!d) return
+  const p = viewer.scene.cartesianToCanvasCoordinates(d.cartesian, new Cesium.Cartesian2())
+  if (p) { millionLabel.value.x = p.x + 16; millionLabel.value.y = p.y - 12 }
+}
+
+function closeMillionLabel() {
+  millionLabel.value = { ...millionLabel.value, visible: false, index: -1 }
 }
 
 // ── 告警事件：uav.alarm.event 经实时服务推送到 WS ──
@@ -201,6 +407,8 @@ function getDroneId(data) {
 }
 
 function onTelemetry(data) {
+    // 百万模式：JSON 遥测不喂渲染器也不缓冲（防内存积压），WS 保持连接只为告警事件
+    if (mode.value === 'million') return
     const id = getDroneId(data)
     if (!id) return
 
@@ -286,11 +494,18 @@ function onLeftClick(click) {
   const picked = viewer.scene.pick(click.position)
   if (picked && picked.primitive && picked.primitive.id !== undefined) {
     const idx = picked.primitive.id
+    if (mode.value === 'million') {
+      // 百万模式：显示简化标牌（索引/经纬度/告警级）
+      if (millionLabel.value.visible && millionLabel.value.index === idx) closeMillionLabel()
+      else openMillionLabel(idx, click.position)
+      return
+    }
     highlightIdx = (highlightIdx === idx) ? -1 : idx
     renderer.highlight(highlightIdx)
     if (highlightIdx === idx) openLabelFor(idx, click.position)
     else closeLabel()
   } else {
+    if (mode.value === 'million') { closeMillionLabel(); return }
     highlightIdx = -1
     renderer.highlight(-1)
     closeLabel()
@@ -316,21 +531,20 @@ async function toggleAirspace() {
   }
 }
 
-// ── FPS ──
+// ── FPS（rAF 实测，两种模式通用）──
 function toggleFps() {
   showFps.value = !showFps.value
   if (showFps.value) {
-    if (viewer) viewer.scene.debugShowFramesPerSecond = true
-    fpsTimer = setInterval(() => { fpsText.value = viewer?.scene?.fps ? `FPS: ${viewer.scene.fps}` : 'FPS: --' }, 1000)
+    rafFrameCount = 0
+    rafLastFpsTime = performance.now()
   } else {
-    if (viewer) viewer.scene.debugShowFramesPerSecond = false
-    clearInterval(fpsTimer); fpsTimer = null; fpsText.value = ''
+    fpsText.value = ''
   }
 }
 
-// ── 统计 ──
+// ── 统计（仅标准模式；百万模式在线数走 /stats 轮询）──
 function updateStats() {
-  if (renderer.isInitialized()) {
+  if (mode.value === 'standard' && renderer.isInitialized()) {
     droneCount.value = renderer.getCount()
     currentLevel.value = renderer.getCurrentLevel()
   }
@@ -343,12 +557,20 @@ onMounted(() => {
   loadPlanMeta()
   viewer.screenSpaceEventHandler.setInputAction(onLeftClick, Cesium.ScreenSpaceEventType.LEFT_CLICK)
   statsTimer = setInterval(updateStats, 2000)
+  mainLoop()
 })
 
 onUnmounted(() => {
-  clearTimeout(wsReconnectTimer); clearTimeout(initTimer); clearInterval(statsTimer); clearInterval(fpsTimer)
+  cancelAnimationFrame(rafId)
+  clearTimeout(wsReconnectTimer); clearTimeout(initTimer); clearInterval(statsTimer)
+  clearTimeout(fleetWsReconnectTimer)
+  if (camListener) { camListener(); camListener = null }
+  clearInterval(statsPollTimer)
+  if (fleetWs) fleetWs.close()
+  if (fleetWorker) fleetWorker.terminate()
   if (labelTimer) { clearInterval(labelTimer); labelTimer = null }
   if (ws) ws.close()
+  millionRenderer.destroy()
   renderer.destroy()
   if (viewer) { viewer.destroy(); viewer = null }
 })
@@ -361,6 +583,9 @@ onUnmounted(() => {
 .toolbar { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 8px; flex-direction: column; }
 .toolbar button { background: rgba(0,0,0,0.7); color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
 .toolbar button:hover { background: rgba(50,50,50,0.8); }
+.toolbar button.active { background: #b45309; border-color: #f59e0b; }
+.toolbar button:disabled { opacity: 0.5; cursor: wait; }
+.drop-overlay { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); background: rgba(120,0,0,0.8); color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 12px; z-index: 10; font-family: monospace; }
 .fps-overlay { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: #0f0; font-family: monospace; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
 
 /* 点击无人机弹出的 DOM 标牌 */

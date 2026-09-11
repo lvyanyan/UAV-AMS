@@ -20,7 +20,14 @@
 3. 数据源：两种选择——(a) 复用 million-demo stress.exe 独立起数据源；(b) uav-simulator 增加二进制输出。建议先 (a)，不动告警链路。
 4. 验收：10 万/50 万/100 万三档截屏；在线数正确；帧率 ≥30FPS；切换模式不影响告警面板。
 
-**状态**：[ ] 未开始
+**实施记录（2026-09-11 完成验收）**
+- 后端：uav-realtime 内置二进制聚合通道 **:8091/fleet**（移植 million-demo 的 fleet/movement/wshub，协议一致 UAVV/USAC），视锥感知（高空 cell 聚合 / 低空 bbox 裁剪 / full 全量），`/resize?count=N` 热调规模、`/stats` 查在线数；8090 JSON 遥测/告警链路零改动。配置段 `fleet:`（default.yaml）。
+- 数据源：未采用 (a) 独立 stress.exe，改为**机群生成器直接并入 uav-realtime**（等效于任务书第 1 步的 "fleet 二进制帧生成"）——省掉跨进程 100MB/s 转发，单服务即可验收，告警链路不受影响。
+- 前端：`src/worker/fleetWorker.js`（二进制解析+抽稀+ECEF，零拷贝）+ `src/composables/useMillionRenderer.js`（v4 懒加载分帧增长，Point 20万/Billboard 1万）；FlightMonitor 工具栏「🚀 百万模式/返回标准模式」切换，进入时相机拉高 50km 俯瞰，在线数走 `/stats` 轮询（cell 帧的 count 是网格数非机群数）。
+- 自检工具：`uav-realtime/cmd/fleettest`（校验 cell/raw 帧格式 + resize + 8090 JSON 链路）。
+- e2e 验收（playwright，2026-09-11）：10万→100,000 / 50万→500,000 / 100万→1,000,000 在线数精确；**FPS 119-120**（≥30 达标）；低空原始帧模式正常；告警面板全程滚动（27→50 条，切换模式无中断）；切回标准模式恢复 1505 架真实遥测。截图：`%TEMP%\uav_shot\m_100k/500k/1000k/lowalt/back_standard.png`。
+
+**状态**：[x] 已完成（2026-09-11）
 
 ---
 

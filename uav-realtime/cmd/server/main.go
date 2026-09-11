@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/uav-ams/uav-realtime/internal/config"
+	"github.com/uav-ams/uav-realtime/internal/fleetws"
 	"github.com/uav-ams/uav-realtime/internal/kafka"
 	"github.com/uav-ams/uav-realtime/internal/mqtt"
 	"github.com/uav-ams/uav-realtime/internal/ws"
@@ -60,6 +61,14 @@ func main() {
 	// --- 最后启动 MQTT（带重试，连上后立即开始接收数据）---
 	go mqttClient.Start(ctx)
 	log.Println("[MQTT] 启动连接（重试中...） ->", cfg.MQTT.Broker)
+
+	// --- 百万级二进制聚合通道（8091，独立于 JSON 遥测，内置模拟机群）---
+	if cfg.Fleet.Enabled {
+		fleetServer := fleetws.NewServer(cfg.Fleet)
+		go fleetServer.Start(ctx)
+	} else {
+		log.Println("[Fleet] 百万级二进制通道未启用（fleet.enabled=false）")
+	}
 
 	// Wait for shutdown
 	sigCh := make(chan os.Signal, 1)
