@@ -11,6 +11,9 @@
       <button @click="toggleMode" :disabled="switching" :class="{ active: mode === 'million' }">
         🚀 {{ mode === 'million' ? '返回标准模式' : '百万模式' }}
       </button>
+      <div v-if="mode === 'million'" class="scale-group">
+        <button v-for="s in SCALES" :key="s.count" :class="{ active: fleetScale === s.count }" @click="setScale(s.count)">{{ s.label }}</button>
+      </div>
       <button @click="toggleAirspace">🗺️ {{ showAirspace ? '隐藏' : '显示' }}空域</button>
       <button @click="toggleFps">📊 FPS</button>
     </div>
@@ -58,10 +61,16 @@ const alertList = ref([])
 
 // ── 百万模式状态 ──
 const FLEET_PORT = 8091
+const SCALES = [
+  { label: '10万', count: 100000 },
+  { label: '50万', count: 500000 },
+  { label: '100万', count: 1000000 },
+]
 const mode = ref('standard')            // 'standard' | 'million'
 const switching = ref(false)            // 切换中禁用按钮，防止两个渲染器半初始化
 const millionFrameMode = ref('连接中')   // 聚合 | 原始 | 连接中 | 断开
 const millionDropped = ref(0)
+const fleetScale = ref(0)               // 当前机群规模（/stats 轮询回填，命中 SCALES 才亮）
 const millionLabel = ref({ visible: false, x: 0, y: 0, index: -1, lon: '--', lat: '--', alt: '--', alertClass: 'NONE', alertText: '无' })
 
 let viewer = null
@@ -203,10 +212,22 @@ function sendViewport(force) {
   }))
 }
 
-// 在线数以服务端 /stats 为准（cell 聚合帧的 count 是网格数，不是机群数）
+// 机群规模调整 + 在线数轮询（cell 帧的 count 是网格数，真实在线数以 /stats 为准）
+async function resizeFleet(count) {
+  try { await fetch(`http://localhost:${FLEET_PORT}/resize?count=${count}`) } catch (e) {}
+  pollFleetStats()
+}
+
+function setScale(count) {
+  fleetScale.value = count
+  resizeFleet(count)
+}
+
 function pollFleetStats() {
   fetch(`http://localhost:${FLEET_PORT}/stats`).then(r => r.json()).then(s => {
-    if (mode.value === 'million' && s.count) droneCount.value = s.count
+    if (mode.value !== 'million') return
+    if (s.count) droneCount.value = s.count
+    if (SCALES.some(x => x.count === s.count)) fleetScale.value = s.count
   }).catch(() => {})
 }
 
@@ -217,7 +238,7 @@ function mainLoop() {
   if (showFps.value) {
     rafFrameCount++
     if (now - rafLastFpsTime >= 1000) {
-      fpsText.value = `FPS: ${Math.round(rafFrameCount / ((now - rafLastFpsTime) / 1000))}`
+      fpsText.value = `rAF: ${Math.round(rafFrameCount / ((now - rafLastFpsTime) / 1000))}`
       rafFrameCount = 0
       rafLastFpsTime = now
     }
@@ -259,7 +280,9 @@ async function enterMillionMode() {
   connectFleetWs()
   camListener = viewer.camera.changed.addEventListener(() => sendViewport(false))
   statsPollTimer = setInterval(pollFleetStats, 2000)
-  pollFleetStats()
+  // 百万模式即上百万规模，工具栏可切 10万/50万/100万
+  fleetScale.value = 1000000
+  resizeFleet(1000000)
   // 拉高到 50km 俯瞰全机群：视角适配百万规模，且高空走轻量聚合帧
   viewer.camera.flyTo({
     destination: Cesium.Cartesian3.fromDegrees(116.4074, 39.9042, 50000),
@@ -268,7 +291,7 @@ async function enterMillionMode() {
   })
   mode.value = 'million'
   currentLevel.value = '--'
-  console.log('[FlightMonitor] 🚀 进入百万模式（二进制 :8091/fleet）')
+  console.log('[FlightMonitor] 🚀 进入百万模式（二进制 :8091/fleet，100万）')
 }
 
 async function exitMillionMode() {
@@ -283,6 +306,8 @@ async function exitMillionMode() {
   millionFrameMode.value = '连接中'
   millionRenderer.destroy()
   closeMillionLabel()
+  fleetScale.value = 0
+  resizeFleet(100000) // 退出百万模式恢复默认规模，服务端常驻开销回到低位
 
   // 重建标准链路：清空映射，遥测缓冲 1 秒后自动 flushBuffer 重建
   droneMap.clear(); slotToSn = []; nextSlot = 0
@@ -531,13 +556,15 @@ async function toggleAirspace() {
   }
 }
 
-// ── FPS（rAF 实测，两种模式通用）──
+// ── FPS：Cesium 自带调试层（真实渲染帧率）+ rAF 实测叠加层 ──
 function toggleFps() {
   showFps.value = !showFps.value
   if (showFps.value) {
+    if (viewer) viewer.scene.debugShowFramesPerSecond = true
     rafFrameCount = 0
     rafLastFpsTime = performance.now()
   } else {
+    if (viewer) viewer.scene.debugShowFramesPerSecond = false
     fpsText.value = ''
   }
 }
@@ -585,8 +612,13 @@ onUnmounted(() => {
 .toolbar button:hover { background: rgba(50,50,50,0.8); }
 .toolbar button.active { background: #b45309; border-color: #f59e0b; }
 .toolbar button:disabled { opacity: 0.5; cursor: wait; }
+.scale-group { display: flex; flex-direction: column; gap: 4px; }
+.scale-group button { background: rgba(0,0,0,0.7); color: #9ecbff; border: 1px solid #555; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.scale-group button.active { background: #0b3a66; border-color: #409eff; color: #fff; }
 .drop-overlay { position: absolute; top: 44px; left: 50%; transform: translateX(-50%); background: rgba(120,0,0,0.8); color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 12px; z-index: 10; font-family: monospace; }
 .fps-overlay { position: absolute; top: 10px; left: 10px; z-index: 10; background: rgba(0,0,0,0.7); color: #0f0; font-family: monospace; padding: 4px 8px; border-radius: 4px; font-size: 13px; }
+/* Cesium 自带 FPS 调试层默认在右上角(top:50px,right:10px)被工具栏遮挡，挪到左上角 rAF 旁 */
+.flight-monitor :deep(.cesium-performanceDisplay-defaultContainer) { top: 10px !important; left: 150px !important; right: auto !important; z-index: 9; }
 
 /* 点击无人机弹出的 DOM 标牌 */
 .drone-label {

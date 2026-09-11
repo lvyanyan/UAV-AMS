@@ -135,11 +135,12 @@ func (s *Server) runTick(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			dt := 1.0 / s.cfg.Freq
-			s.fleet.Load().Update(dt, s.cfg.Radius)
+			// 无客户端时不推进不聚合，百万机群的常驻 CPU 开销只发生在有人观看时
 			if s.hub.Count() == 0 {
 				continue
 			}
+			dt := 1.0 / s.cfg.Freq
+			s.fleet.Load().Update(dt, s.cfg.Radius)
 			s.hub.Broadcast(s.gen, s.bufPool, time.Now().UnixMilli())
 		}
 	}
