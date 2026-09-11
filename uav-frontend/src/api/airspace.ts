@@ -3,15 +3,16 @@ import type { R } from './index'
 
 export interface Airspace {
   id?: number
-  name: string
-  type: string          // 管制/适飞/禁飞/临时禁飞
-  level?: number
-  polygon: string        // GeoJSON polygon
-  lowerAltitude: number
-  upperAltitude: number
-  effectiveTime?: string
-  expireTime?: string
-  status?: string
+  airspaceName: string
+  airspaceCode?: string
+  airspaceType: string   // CONTROL 管制 / OPERATION 作业 / CORRIDOR 走廊 / DEMO 示范 / NO_FLY 禁飞
+  geoJson?: string       // GeoJSON polygon
+  altFloorM?: number
+  altCeilingM?: number
+  startTime?: string
+  endTime?: string
+  isActive?: boolean
+  description?: string
   createTime?: string
 }
 

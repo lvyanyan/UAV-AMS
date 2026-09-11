@@ -4,11 +4,11 @@ import type { R } from './index'
 export interface UavOwner {
   id?: number
   ownerName: string
-  idCardNo: string
+  idNumber: string
   phone: string
   email?: string
   address?: string
-  organization?: string
+  address?: string
   registerStatus?: string
   createTime?: string
 }
@@ -18,9 +18,9 @@ export interface UavRegistration {
   ownerId: number
   droneSn: string
   droneModel: string
-  droneWeight?: number
+  weightG?: number
   droneType?: string
-  registerNo?: string
+  registrationId?: string
   registerStatus?: string
   photoUrl?: string
   createTime?: string

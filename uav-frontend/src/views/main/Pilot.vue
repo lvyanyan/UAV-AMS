@@ -1,16 +1,16 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>驾驶员管理</h2>
-      <el-button type="primary" @click="showCreate">新增驾驶员</el-button>
+      <h2>飞手管理</h2>
+      <el-button type="primary" @click="showCreate">新增飞手</el-button>
     </div>
 
     <el-table :data="list" border stripe v-loading="loading">
-      <el-table-column prop="name" label="姓名" width="100" />
-      <el-table-column prop="idCardNo" label="身份证号" width="180" />
+      <el-table-column prop="pilotName" label="姓名" width="100" />
+      <el-table-column prop="idNumber" label="身份证号" width="180" />
       <el-table-column prop="phone" label="电话" width="130" />
-      <el-table-column prop="licenseNo" label="执照号" width="140" />
-      <el-table-column prop="licenseType" label="执照类型" width="120" />
+      <el-table-column prop="licenseNo" label="执照号" width="180" />
+      <el-table-column prop="licenseLevel" label="执照等级" width="160" />
       <el-table-column prop="licenseExpire" label="执照有效期" width="120" />
       <el-table-column prop="status" label="状态" width="100">
         <template #default="{ row }">
@@ -27,17 +27,17 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="editing.id?'编辑驾驶员':'新增驾驶员'" width="500px">
+    <el-dialog v-model="dialogVisible" :title="editing.id?'编辑飞手':'新增飞手'" width="500px">
       <el-form :model="form" label-width="100px">
-        <el-form-item label="姓名"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="身份证号"><el-input v-model="form.idCardNo" /></el-form-item>
+        <el-form-item label="姓名"><el-input v-model="form.pilotName" /></el-form-item>
+        <el-form-item label="身份证号"><el-input v-model="form.idNumber" /></el-form-item>
         <el-form-item label="电话"><el-input v-model="form.phone" /></el-form-item>
         <el-form-item label="执照号"><el-input v-model="form.licenseNo" /></el-form-item>
-        <el-form-item label="执照类型">
-          <el-select v-model="form.licenseType" style="width:100%">
-            <el-option label="视距内" value="VLOS" />
-            <el-option label="超视距" value="BVLOS" />
-            <el-option label="教员" value="INSTRUCTOR" />
+        <el-form-item label="执照等级">
+          <el-select v-model="form.licenseLevel" style="width:100%">
+            <el-option label="视距内驾驶员" value="视距内驾驶员" />
+            <el-option label="超视距驾驶员" value="超视距驾驶员" />
+            <el-option label="超视距教员" value="超视距教员" />
           </el-select>
         </el-form-item>
         <el-form-item label="执照有效期"><el-date-picker v-model="form.licenseExpire" type="date" style="width:100%" /></el-form-item>
@@ -80,7 +80,7 @@ const medicalDialog = ref(false)
 const editing = ref<UavPilot>({})
 const currentPilotId = ref(0)
 const medicalList = ref<UavPilotMedical[]>([])
-const form = ref<UavPilot>({ name:'', idCardNo:'', phone:'', licenseNo:'', licenseType:'VLOS', licenseExpire:'' })
+const form = ref<UavPilot>({ pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'视距内驾驶员', licenseExpire:'' })
 const medicalForm = ref<UavPilotMedical>({ pilotId:0, examDate:'', examOrg:'', result:'PASS' })
 
 onMounted(() => loadData())
@@ -91,7 +91,7 @@ async function loadData() {
   finally { loading.value = false }
 }
 
-function showCreate() { editing.value = {}; form.value = { name:'', idCardNo:'', phone:'', licenseNo:'', licenseType:'VLOS', licenseExpire:'' }; dialogVisible.value = true }
+function showCreate() { editing.value = {}; form.value = { pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'视距内驾驶员', licenseExpire:'' }; dialogVisible.value = true }
 function editItem(row: UavPilot) { editing.value = { ...row }; form.value = { ...row }; dialogVisible.value = true }
 
 async function saveItem() {

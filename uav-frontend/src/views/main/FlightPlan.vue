@@ -17,7 +17,9 @@
 
     <el-table :data="plans" border stripe v-loading="loading" style="width:100%">
       <el-table-column prop="planCode" label="计划编号" width="140" />
-      <el-table-column prop="pilotName" label="驾驶员" width="100" />
+      <el-table-column prop="pilotName" label="飞手" width="100">
+        <template #default="{ row }">{{ pilotNames[row.pilotId] || row.pilotName || '--' }}</template>
+      </el-table-column>
       <el-table-column prop="droneSn" label="无人机SN" width="130" />
       <el-table-column prop="departure" label="起飞点" min-width="120" />
       <el-table-column prop="destination" label="降落点" min-width="120" />
@@ -43,7 +45,7 @@
     <el-dialog v-model="dialogVisible" :title="editingPlan.id ? '编辑计划' : '新建计划'" width="600px">
       <el-form :model="form" label-width="100px">
         <el-form-item label="计划编号"><el-input v-model="form.planNo" placeholder="自动生成" disabled /></el-form-item>
-        <el-form-item label="驾驶员"><el-input v-model="form.pilotName" placeholder="驾驶员姓名" /></el-form-item>
+        <el-form-item label="飞手"><el-input v-model="form.pilotName" placeholder="飞手姓名" /></el-form-item>
         <el-form-item label="无人机SN"><el-input v-model="form.droneSn" placeholder="无人机序列号" /></el-form-item>
         <el-form-item label="飞行区域"><el-input v-model="form.flightArea" placeholder="e.g. 北京市朝阳区" /></el-form-item>
         <el-form-item label="开始时间"><el-date-picker v-model="form.startTime" type="datetime" style="width:100%" /></el-form-item>
@@ -73,6 +75,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { flightPlanApi, type FlightPlan } from '@/api/flight-plan'
+import { pilotApi } from '@/api/pilot'
 
 const plans = ref<FlightPlan[]>([])
 const loading = ref(false)
@@ -88,7 +91,17 @@ const form = ref<FlightPlan>({
   startTime: '', endTime: '', planNo: ''
 })
 
-onMounted(() => loadPlans())
+const pilotNames = ref<Record<number, string>>({})
+
+onMounted(async () => {
+  loadPlans()
+  try {
+    const res = await pilotApi.list()
+    const m: Record<number, string> = {}
+    for (const p of ((res as any).data || [])) m[p.id] = p.pilotName
+    pilotNames.value = m
+  } catch (e) {}
+})
 
 async function loadPlans() {
   loading.value = true

@@ -3,11 +3,11 @@ import type { R } from './index'
 
 export interface UavPilot {
   id?: number
-  name: string
-  idCardNo: string
+  pilotName: string
+  idNumber: string
   phone: string
   licenseNo?: string
-  licenseType?: string
+  licenseLevel?: string
   licenseExpire?: string
   status?: string
   createTime?: string

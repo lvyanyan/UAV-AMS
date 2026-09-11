@@ -15,9 +15,9 @@
       </div>
       <el-table :data="owners" border stripe>
         <el-table-column prop="ownerName" label="姓名/单位" width="140" />
-        <el-table-column prop="idCardNo" label="证件号" width="180" />
+        <el-table-column prop="idNumber" label="证件号" width="180" />
         <el-table-column prop="phone" label="电话" width="130" />
-        <el-table-column prop="organization" label="所属单位" min-width="150" />
+        <el-table-column prop="address" label="地址" min-width="150" />
         <el-table-column prop="registerStatus" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.registerStatus==='APPROVED'?'success':row.registerStatus==='REJECTED'?'danger':'warning'">
@@ -43,8 +43,8 @@
         <el-table-column prop="droneSn" label="SN" width="150" />
         <el-table-column prop="droneModel" label="型号" width="120" />
         <el-table-column prop="droneType" label="类型" width="100" />
-        <el-table-column prop="droneWeight" label="重量(kg)" width="100" />
-        <el-table-column prop="registerNo" label="登记号" width="180" />
+        <el-table-column prop="weightG" label="重量(g)" width="100" />
+        <el-table-column prop="registrationId" label="登记号" width="180" />
         <el-table-column prop="registerStatus" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.registerStatus==='APPROVED'?'success':row.registerStatus==='REJECTED'?'danger':'warning'">
@@ -65,10 +65,10 @@
     <el-dialog v-model="ownerDialog" title="新增所有人" width="450px">
       <el-form :model="ownerForm" label-width="80px">
         <el-form-item label="姓名/单位"><el-input v-model="ownerForm.ownerName" /></el-form-item>
-        <el-form-item label="证件号"><el-input v-model="ownerForm.idCardNo" /></el-form-item>
+        <el-form-item label="证件号"><el-input v-model="ownerForm.idNumber" /></el-form-item>
         <el-form-item label="电话"><el-input v-model="ownerForm.phone" /></el-form-item>
         <el-form-item label="邮箱"><el-input v-model="ownerForm.email" /></el-form-item>
-        <el-form-item label="单位"><el-input v-model="ownerForm.organization" /></el-form-item>
+        <el-form-item label="地址"><el-input v-model="ownerForm.address" /></el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="ownerDialog=false">取消</el-button>
@@ -103,7 +103,7 @@ const owners = ref<UavOwner[]>([])
 const drones = ref<UavRegistration[]>([])
 const ownerDialog = ref(false)
 const droneDialog = ref(false)
-const ownerForm = ref<UavOwner>({ ownerName:'', idCardNo:'', phone:'', email:'', organization:'' })
+const ownerForm = ref<UavOwner>({ ownerName:'', idNumber:'', phone:'', email:'', address:'' })
 const droneForm = ref<UavRegistration>({ ownerId:1, droneSn:'', droneModel:'', droneType:'', droneWeight:0 })
 
 onMounted(() => { loadOwners(); loadDrones() })
@@ -111,7 +111,7 @@ onMounted(() => { loadOwners(); loadDrones() })
 async function loadOwners() { const res = await registryApi.listOwners(); owners.value = (res as any).data || [] }
 async function loadDrones() { const res = await registryApi.listDrones(); drones.value = (res as any).data || [] }
 
-function showOwnerDialog() { ownerForm.value = { ownerName:'', idCardNo:'', phone:'', email:'', organization:'' }; ownerDialog.value = true }
+function showOwnerDialog() { ownerForm.value = { ownerName:'', idNumber:'', phone:'', email:'', address:'' }; ownerDialog.value = true }
 async function saveOwner() { await registryApi.registerOwner(ownerForm.value); ElMessage.success('登记成功'); ownerDialog.value = false; loadOwners() }
 async function approveOwner(row: UavOwner) { await registryApi.approveOwner(row.id!); ElMessage.success('已通过'); loadOwners() }
 async function rejectOwner(row: UavOwner) { await registryApi.rejectOwner(row.id!); ElMessage.success('已拒绝'); loadOwners() }
