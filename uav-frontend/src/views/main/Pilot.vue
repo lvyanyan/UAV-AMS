@@ -22,7 +22,7 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.status==='ACTIVE'?'success':'danger'">{{ row.status==='ACTIVE'?'正常':'停飞' }}</el-tag>
+            <el-tag :type="row.status==='ACTIVE'?'success':'danger'">{{ statusLabel(row.status) }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
@@ -88,6 +88,8 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { pilotApi, type UavPilot, type UavPilotMedical } from '@/api/pilot'
 import { usePaging } from '@/composables/usePaging'
+import { useDict } from '@/composables/useDict'
+import { fmtDate } from '@/utils/format'
 
 const list = ref<UavPilot[]>([])
 const loading = ref(false)
@@ -99,6 +101,7 @@ const medicalList = ref<UavPilotMedical[]>([])
 const form = ref<UavPilot>({ pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'视距内驾驶员', licenseExpire:'' })
 const medicalForm = ref<UavPilotMedical>({ pilotId:0, examDate:'', examOrg:'', result:'PASS' })
 const { page, size, total, paged } = usePaging(list)
+const { label: statusLabel } = useDict('pilot_status')
 
 onMounted(() => loadData())
 
@@ -135,5 +138,4 @@ async function uploadMedical() {
   showMedical({ id: currentPilotId.value } as UavPilot)
 }
 
-function fmtDate(t?: string) { return t ? t.replace('T', ' ').slice(0, 10) : '--' }
 </script>

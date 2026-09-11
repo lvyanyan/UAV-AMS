@@ -26,7 +26,7 @@
         <el-table-column prop="status" label="处理状态" width="110">
           <template #default="{ row }">
             <el-tag :type="row.status==='CLOSED'?'success':'warning'">
-              {{ row.status==='CLOSED'?'已结案':'待处理' }}
+              {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -69,6 +69,8 @@ import { ElMessage } from 'element-plus'
 import { systemApi } from '@/api/system'
 import { alarmApi } from '@/api/alarm'
 import { usePaging } from '@/composables/usePaging'
+import { useDict } from '@/composables/useDict'
+import { fmtDateTime as fmtTime } from '@/utils/format'
 
 interface Violation {
   id?: number; droneSn: string; violationType: string; violationLevel: string
@@ -81,6 +83,9 @@ const detailDialog = ref(false)
 const detail = ref<Violation>({} as Violation)
 const handleNote = ref('')
 const { page, size, total, paged } = usePaging(list)
+const { label: typeLabel } = useDict('alarm_type')
+const { label: levelLabel } = useDict('alarm_level')
+const { label: statusLabel } = useDict('violation_status')
 
 const pendingCount = computed(() => list.value.filter(v => v.status === 'PENDING').length)
 const closedCount = computed(() => list.value.filter(v => v.status === 'CLOSED').length)
@@ -104,13 +109,4 @@ async function doProcess() {
   loadData()
 }
 
-function typeLabel(t: string) {
-  const map: Record<string,string> = { AIRSPACE:'空域违规', ALTITUDE:'高度超限', NO_PLAN:'无计划飞行', SPEED:'速度违规', GEOFENCE:'围栏闯入', TERRAIN_COLLISION:'地形碰撞', CONFLICT:'飞行冲突', ROUTE:'航路偏离', WEATHER:'气象风险', EQUIPMENT:'设备异常', TERRAIN:'地形风险' }
-  return map[t] || t
-}
-function levelLabel(l: string) {
-  const map: Record<string,string> = { CRITICAL:'危急', SERIOUS:'严重', GENERAL:'一般' }
-  return map[l] || l
-}
-function fmtTime(t?: string) { return t ? String(t).replace('T', ' ').slice(0, 19) : '--' }
 </script>

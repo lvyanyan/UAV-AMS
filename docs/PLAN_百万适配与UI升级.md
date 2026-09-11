@@ -58,6 +58,20 @@
 
 ---
 
+---
+
+## 追加任务：字典服务 + 全局日期格式化（2026-09-11，用户反馈"类型露英文、日期未格式化"）
+
+- **字典服务**：uav-system 新增 `sys_dict` 表（DictInitializer 幂等建表+种子，枚举值盘点自生产库：airspace_type 实际含 CTR/RESTRICTED/TEST 等 9 种）+ `SysDictController`（/api/dict/all 一次全量、/data/{type}、增删改），网关路由补 `/api/dict/**`。
+- **前端**：`composables/useDict.ts` 全局缓存一次拉取 + 内置种子回退（字典服务挂了也不裸奔英文）；`api/dict.ts`；八页硬编码映射全部替换（空域类型/机型/登记状态/飞手状态/计划状态/告警级别与类型/违规状态/用户角色），未登记的值原样透出便于发现漏维护枚举。
+- **字典管理 UI**：System 页新增「字典管理」tab（类型筛选 + 增删改，写回全局缓存即时生效）。
+- **日期格式化**：uav-system 控制器与 alarm-engine JacksonConfig 在源头统一输出 `yyyy-MM-dd HH:mm:ss`（此前 ISO 串/微秒直出）；前端 `utils/format.ts`（fmtDateTime/fmtDate）替换各页自带的切片实现，表格统一 `YYYY-MM-DD HH:mm`。
+- 验收：空域 9 类型全部中文（机场管制区/限制区/试验区等此前漏翻的值）、各页时间统一格式、System 字典 tab 增删改查可用。
+
+**状态**：[x] 已完成（2026-09-11）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。

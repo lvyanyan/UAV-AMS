@@ -89,6 +89,8 @@ import { registryApi } from '@/api/registry'
 import { pilotApi } from '@/api/pilot'
 import { flightPlanApi } from '@/api/flight-plan'
 import { alarmApi } from '@/api/alarm'
+import { useDict } from '@/composables/useDict'
+import { fmtDateTime as fmtTime } from '@/utils/format'
 
 const today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
 
@@ -134,10 +136,7 @@ let typeChart: echarts.ECharts | null = null
 let planChart: echarts.ECharts | null = null
 let trendChart: echarts.ECharts | null = null
 
-function levelLabel(k: string) {
-  const map: Record<string, string> = { CRITICAL: '危急', SERIOUS: '严重', GENERAL: '一般', WARNING: '警告', MINOR: '轻微', MAJOR: '重大', EMERGENCY: '紧急' }
-  return map[k] || k
-}
+const { label: levelLabel } = useDict('alarm_level')
 function statusLabel(s: string) {
   const map: Record<string, string> = { DRAFT: '草稿', PENDING_LEVEL1: '一级审批', PENDING_LEVEL2: '二级审批', PENDING_LEVEL3: '三级审批', APPROVED: '已批准', REJECTED: '已拒绝' }
   return map[s] || s
@@ -242,7 +241,6 @@ function initCharts() {
 }
 function onResize() { [levelChart, typeChart, planChart, trendChart].forEach(c => c?.resize()) }
 
-function fmtTime(t?: string) { return t ? t.replace('T', ' ').slice(5, 16) : '--' }
 
 // 趋势图用全量告警列表（表格只展示最新 8 条）
 let recentAllAlarms: any[] = []

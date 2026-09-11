@@ -77,6 +77,8 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { airspaceApi, type Airspace } from '@/api/airspace'
 import { usePaging } from '@/composables/usePaging'
+import { useDict } from '@/composables/useDict'
+import { fmtDateTime as fmtTime } from '@/utils/format'
 
 const list = ref<Airspace[]>([])
 const loading = ref(false)
@@ -118,11 +120,5 @@ function typeTag(t: string): any {
   const map: Record<string,string> = { CONTROL:'danger', NO_FLY:'danger', OPERATION:'warning', CORRIDOR:'success', DEMO:'primary', CONTROLLED:'warning', SUITABLE:'success', TEMP_NO_FLY:'danger' }
   return map[t] || 'info'
 }
-function typeLabel(t: string) {
-  const map: Record<string,string> = { CONTROL:'管制区', OPERATION:'作业区', CORRIDOR:'走廊', DEMO:'示范区', NO_FLY:'禁飞区', CONTROLLED:'管制', SUITABLE:'适飞', TEMP_NO_FLY:'临时禁飞' }
-  return map[t] || t
-}
-function fmtTime(t?: string) {
-  return t ? t.replace('T', ' ').slice(0, 16) : '--'
-}
+const { label: typeLabel } = useDict('airspace_type')
 </script>

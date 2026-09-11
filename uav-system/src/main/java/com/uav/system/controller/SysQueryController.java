@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.sql.ResultSet;
 import java.sql.Timestamp;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,6 +25,12 @@ public class SysQueryController {
 
     public SysQueryController(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
+    private static final java.time.format.DateTimeFormatter TS =
+        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    /** 统一时间出口：Timestamp → "yyyy-MM-dd HH:mm:ss" */
+    private static String fmt(Timestamp t) { return t == null ? null : TS.format(t.toLocalDateTime()); }
+
     @GetMapping("/user/list")
     public R<List<Map<String, Object>>> userList() {
         List<Map<String, Object>> out = new ArrayList<>();
@@ -39,7 +45,7 @@ public class SysQueryController {
             m.put("roleName", rs.getString("role_code"));
             m.put("status", rs.getBoolean("enabled") ? "ACTIVE" : "DISABLED");
             Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", t == null ? null : t.toString());
+            m.put("createTime", fmt(t));
             out.add(m);
         });
         return R.ok(out);
@@ -55,7 +61,7 @@ public class SysQueryController {
             m.put("roleName", rs.getString("role_name"));
             m.put("description", rs.getString("description"));
             Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", t == null ? null : t.toString());
+            m.put("createTime", fmt(t));
             out.add(m);
         });
         return R.ok(out);
@@ -73,7 +79,7 @@ public class SysQueryController {
             m.put("target", rs.getString("target"));
             m.put("ip", rs.getString("ip_address"));
             Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", t == null ? null : t.toString());
+            m.put("createTime", fmt(t));
             out.add(m);
         });
         return R.ok(out);
@@ -96,7 +102,7 @@ public class SysQueryController {
             m.put("description", rs.getString("alarm_content"));
             m.put("status", rs.getBoolean("handled") ? "CLOSED" : "PENDING");
             Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", t == null ? null : t.toString());
+            m.put("createTime", fmt(t));
             out.add(m);
         });
         return R.ok(out);

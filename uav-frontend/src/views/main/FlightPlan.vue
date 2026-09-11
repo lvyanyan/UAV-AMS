@@ -91,6 +91,8 @@ import { ElMessage } from 'element-plus'
 import { flightPlanApi, type FlightPlan } from '@/api/flight-plan'
 import { pilotApi } from '@/api/pilot'
 import { usePaging } from '@/composables/usePaging'
+import { useDict } from '@/composables/useDict'
+import { fmtDateTime as fmtTime } from '@/utils/format'
 
 const plans = ref<FlightPlan[]>([])
 const loading = ref(false)
@@ -101,6 +103,7 @@ const editingPlan = ref<FlightPlan>({})
 const currentPlan = ref<FlightPlan>({})
 const approveComment = ref('')
 const { page, size, total, paged } = usePaging(plans)
+const { label: statusLabel } = useDict('plan_status')
 
 const form = ref<FlightPlan>({
   pilotName: '', droneSn: '', flightArea: '', maxAltitude: 120, flightPurpose: '',
@@ -190,9 +193,4 @@ function statusTag(s: string): any {
   const map: Record<string,string> = { DRAFT:'info', PENDING_LEVEL1:'warning', PENDING_LEVEL2:'warning', PENDING_LEVEL3:'warning', APPROVED:'success', REJECTED:'danger', MILITARY_CANCELLED:'danger' }
   return map[s] || 'info'
 }
-function statusLabel(s: string) {
-  const map: Record<string,string> = { DRAFT:'草稿', PENDING_LEVEL1:'一级审批中', PENDING_LEVEL2:'二级审批中', PENDING_LEVEL3:'三级审批中', APPROVED:'已批准', REJECTED:'已拒绝', MILITARY_CANCELLED:'军事取消' }
-  return map[s] || s
-}
-function fmtTime(t?: string) { return t ? String(t).replace('T', ' ').slice(0, 16) : '--' }
 </script>

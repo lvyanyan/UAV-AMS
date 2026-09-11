@@ -49,10 +49,14 @@ import { ref, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { alarmApi, type AlarmEvent } from '@/api/alarm'
 import { usePaging } from '@/composables/usePaging'
+import { useDict } from '@/composables/useDict'
+import { fmtDateTime as fmtTime } from '@/utils/format'
 
 const list = ref<AlarmEvent[]>([])
 const loading = ref(false)
 const { page, size, total, paged } = usePaging(list)
+const { label: levelLabel } = useDict('alarm_level')
+const { label: typeLabel } = useDict('alarm_type')
 
 const criticalCount = computed(() => list.value.filter(a => a.alarmLevel === 'CRITICAL').length)
 const seriousCount = computed(() => list.value.filter(a => a.alarmLevel === 'SERIOUS').length)
@@ -82,15 +86,6 @@ function levelTag(l: string): any {
   const map: Record<string,string> = { GENERAL:'info', SERIOUS:'warning', CRITICAL:'danger' }
   return map[l] || 'info'
 }
-function levelLabel(l: string) {
-  const map: Record<string,string> = { GENERAL:'一般', SERIOUS:'严重', CRITICAL:'危急' }
-  return map[l] || l
-}
-function typeLabel(t: string) {
-  const map: Record<string,string> = { AIRSPACE:'空域违规', WEATHER:'气象风险', EQUIPMENT:'设备异常', TERRAIN:'地形风险', TERRAIN_COLLISION:'地形碰撞', CONFLICT:'飞行冲突', ROUTE:'航路偏离' }
-  return map[t] || t
-}
-function fmtTime(t?: string) { return t ? String(t).replace('T', ' ').slice(0, 16) : '--' }
 </script>
 
 <style scoped>

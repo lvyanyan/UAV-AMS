@@ -26,7 +26,7 @@
         <el-table-column prop="registerStatus" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.registerStatus==='APPROVED'?'success':row.registerStatus==='REJECTED'?'danger':'warning'">
-              {{ row.registerStatus==='APPROVED'?'已通过':row.registerStatus==='REJECTED'?'已拒绝':'待审核' }}
+              {{ regStatusLabel(row.registerStatus) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -47,13 +47,15 @@
       <el-table v-if="tab==='drone'" :data="dronePage.paged.value" border stripe>
         <el-table-column prop="droneSn" label="SN" width="150" />
         <el-table-column prop="droneModel" label="型号" width="120" />
-        <el-table-column prop="droneType" label="类型" width="100" />
+        <el-table-column prop="droneType" label="类型" width="110">
+          <template #default="{ row }">{{ droneTypeLabel(row.droneType) }}</template>
+        </el-table-column>
         <el-table-column prop="weightG" label="重量(g)" width="100" />
         <el-table-column prop="registrationId" label="登记号" width="180" />
         <el-table-column prop="registerStatus" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.registerStatus==='APPROVED'?'success':row.registerStatus==='REJECTED'?'danger':'warning'">
-              {{ row.registerStatus==='APPROVED'?'已通过':row.registerStatus==='REJECTED'?'已拒绝':'待审核' }}
+              {{ regStatusLabel(row.registerStatus) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -108,6 +110,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { registryApi, type UavOwner, type UavRegistration } from '@/api/registry'
 import { usePaging } from '@/composables/usePaging'
+import { useDict } from '@/composables/useDict'
 
 const tab = ref('owner')
 const owners = ref<UavOwner[]>([])
@@ -116,6 +119,8 @@ const ownerDialog = ref(false)
 const droneDialog = ref(false)
 const ownerForm = ref<UavOwner>({ ownerName:'', idNumber:'', phone:'', email:'', address:'' })
 const droneForm = ref<UavRegistration>({ ownerId:1, droneSn:'', droneModel:'', droneType:'', droneWeight:0 })
+const { label: regStatusLabel } = useDict('register_status')
+const { label: droneTypeLabel } = useDict('drone_type')
 const ownerPage = usePaging(owners, 10)
 const dronePage = usePaging(drones, 10)
 
