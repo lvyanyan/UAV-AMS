@@ -30,6 +30,7 @@ const FALLBACK: Record<string, DictItem[]> = {
     { value: 'PENDING_LEVEL2', label: '二级审批中' }, { value: 'PENDING_LEVEL3', label: '三级审批中' },
     { value: 'APPROVED', label: '已批准' }, { value: 'REJECTED', label: '已拒绝' },
     { value: 'MILITARY_CANCELLED', label: '军事取消' },
+    { value: 'COMPLETED', label: '已完成' },
   ],
   alarm_level: [
     { value: 'CRITICAL', label: '危急' }, { value: 'MAJOR', label: '重大' },

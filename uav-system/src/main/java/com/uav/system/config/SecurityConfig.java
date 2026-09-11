@@ -33,6 +33,8 @@ public class SecurityConfig {
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
+                // 字典为公开标签数据：GET 匿名可读（便于直接访问 API 查看），写操作仍需认证
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/dict/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             )

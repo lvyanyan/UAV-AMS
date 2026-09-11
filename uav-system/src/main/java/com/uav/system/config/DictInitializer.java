@@ -56,6 +56,7 @@ public class DictInitializer implements CommandLineRunner {
         row("plan_status", "APPROVED", "已批准", 5),
         row("plan_status", "REJECTED", "已拒绝", 6),
         row("plan_status", "MILITARY_CANCELLED", "军事取消", 7),
+        row("plan_status", "COMPLETED", "已完成", 8),
 
         row("alarm_level", "CRITICAL", "危急", 1),
         row("alarm_level", "MAJOR", "重大", 2),

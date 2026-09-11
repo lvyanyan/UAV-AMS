@@ -13,6 +13,7 @@
           <el-option label="待三级审批" value="PENDING_LEVEL3" />
           <el-option label="已批准" value="APPROVED" />
           <el-option label="已拒绝" value="REJECTED" />
+          <el-option label="已完成" value="COMPLETED" />
         </el-select>
         <el-button type="primary" @click="showCreateDialog">新建计划</el-button>
       </div>
@@ -44,7 +45,7 @@
             <el-button size="small" @click="showDetail(row)">详情</el-button>
             <el-button v-if="row.planStatus==='DRAFT'" size="small" type="success" @click="submitPlan(row)">提交</el-button>
             <el-button v-if="pendingLevel(row.planStatus)" size="small" type="warning" @click="approvePlan(row)">审批</el-button>
-            <el-button size="small" type="danger" @click="rejectPlan(row)">拒绝</el-button>
+            <el-button v-if="pendingLevel(row.planStatus)" size="small" type="danger" @click="rejectPlan(row)">拒绝</el-button>
           </template>
         </el-table-column>
         <template #empty><el-empty description="暂无飞行计划" /></template>

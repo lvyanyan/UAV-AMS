@@ -49,10 +49,12 @@
       <el-col :span="8">
         <el-card shadow="never" class="panel">
           <template #header><b>⚡ 快捷操作</b></template>
-          <el-button type="primary" style="width:100%;margin-bottom:8px" @click="$router.push('/flight-monitor')">🛰️ 飞行监控大屏</el-button>
-          <el-button type="success" style="width:100%;margin-bottom:8px" @click="$router.push('/flight-plan')">📋 飞行计划审批</el-button>
-          <el-button type="warning" style="width:100%;margin-bottom:8px" @click="$router.push('/alarm')">🔔 告警中心</el-button>
-          <el-button type="info" style="width:100%" @click="$router.push('/airspace')">🗺️ 空域配置</el-button>
+          <div class="quick-actions">
+            <el-button type="primary" @click="$router.push('/flight-monitor')">🛰️ 飞行监控大屏</el-button>
+            <el-button type="success" @click="$router.push('/flight-plan')">📋 飞行计划审批</el-button>
+            <el-button type="warning" @click="$router.push('/alarm')">🔔 告警中心</el-button>
+            <el-button type="info" @click="$router.push('/airspace')">🗺️ 空域配置</el-button>
+          </div>
         </el-card>
       </el-col>
     </el-row>
@@ -102,7 +104,7 @@ const LEVEL_COLOR: Record<string, string> = {
   GENERAL: C.blue, MINOR: C.gray,
 }
 const STATUS_COLOR: Record<string, string> = {
-  APPROVED: C.green, REJECTED: C.red,
+  APPROVED: C.green, COMPLETED: C.gray, REJECTED: C.red,
   PENDING_LEVEL1: C.blue, PENDING_LEVEL2: C.orange, PENDING_LEVEL3: C.orange,
   DRAFT: C.gray,
 }
@@ -137,10 +139,7 @@ let planChart: echarts.ECharts | null = null
 let trendChart: echarts.ECharts | null = null
 
 const { label: levelLabel } = useDict('alarm_level')
-function statusLabel(s: string) {
-  const map: Record<string, string> = { DRAFT: '草稿', PENDING_LEVEL1: '一级审批', PENDING_LEVEL2: '二级审批', PENDING_LEVEL3: '三级审批', APPROVED: '已批准', REJECTED: '已拒绝' }
-  return map[s] || s
-}
+const { label: statusLabel } = useDict('plan_status')
 
 function emptyOption(text: string): echarts.EChartsCoreOption {
   return { graphic: [{ type: 'text', left: 'center', top: 'middle', style: { text, fill: '#5f7189', fontSize: 13 } }] }
@@ -302,4 +301,6 @@ onUnmounted(() => {
 .chart.trend { height: 225px; }
 .mid-row { margin-bottom: 14px; }
 .bottom-row { margin-bottom: 14px; }
+.quick-actions { display: flex; flex-direction: column; gap: 8px; }
+.quick-actions :deep(.el-button) { width: 100%; margin-left: 0; }
 </style>

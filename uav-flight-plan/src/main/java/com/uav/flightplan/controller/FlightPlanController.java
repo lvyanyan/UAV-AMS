@@ -17,13 +17,16 @@ public class FlightPlanController {
     private final FlightPlanService planService;
     private final FlightPlanApprovalService approvalService;
     private final FlightPlanProcessService processService;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbc;
 
     public FlightPlanController(FlightPlanService planService,
                                 FlightPlanApprovalService approvalService,
-                                FlightPlanProcessService processService) {
+                                FlightPlanProcessService processService,
+                                org.springframework.jdbc.core.JdbcTemplate jdbc) {
         this.planService = planService;
         this.approvalService = approvalService;
         this.processService = processService;
+        this.jdbc = jdbc;
     }
 
     // ===== 计划 CRUD =====
@@ -41,13 +44,21 @@ public class FlightPlanController {
 
     @GetMapping("/list")
     public R<List<FlightPlan>> list() {
+        sweepCompleted();
         return R.ok(planService.list());
     }
 
     @GetMapping("/list/status/{status}")
     public R<List<FlightPlan>> listByStatus(@PathVariable String status) {
+        sweepCompleted();
         return R.ok(planService.lambdaQuery()
                 .eq(FlightPlan::getPlanStatus, status).list());
+    }
+
+    /** 生命周期收口：已批准且计划结束时间已过的计划自动置为 COMPLETED（查询时惰性触发，用数据库时钟避免时区漂移） */
+    private void sweepCompleted() {
+        jdbc.update("update flight_plan set plan_status = 'COMPLETED' "
+                + "where plan_status = 'APPROVED' and planned_end < now()");
     }
 
     @PutMapping("/{id}")
