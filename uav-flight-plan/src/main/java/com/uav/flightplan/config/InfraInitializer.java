@@ -45,6 +45,34 @@ public class InfraInitializer implements CommandLineRunner {
                 "[[116.44,39.72],[116.50,39.78],[116.58,39.82]]", 150.0, "TWO_WAY", "南部城区基础设施巡检");
         }
 
+        // 演示态势：每 5 架 STRESS 压力机取 1 架补登记 + 长期已批准计划 → 转为合规机（其余保持黑飞，形成红蓝对比）
+        Integer stressPlans = jdbc.queryForObject("select count(*) from flight_plan where plan_code like 'FP-STRESS-%'", Integer.class);
+        if (stressPlans == null || stressPlans == 0) {
+            String[] purposes = {"物流配送", "电力巡检", "航空测绘", "空域巡逻"};
+            int seeded = 0;
+            for (int i = 1; i <= 1000; i += 5) {
+                String sn = String.format("STRESS-%04d", i);
+                String code = String.format("FP-STRESS-%04d", i);
+                String regId = String.format("REG-STRESS-%04d", i);
+                String purpose = purposes[(i / 5) % purposes.length];
+                String destination = i % 10 == 0 ? "廊坊高新区物流起降点" : "亦庄滨河公园起降场";
+                // 补实名登记（无则插入）
+                jdbc.update("insert into uav_registration (owner_id, drone_sn, drone_model, drone_type, weight_g, registration_id, register_status) "
+                    + "select 1, ?, 'DJI-M30T', 'MULTIROTOR', 1400, ?, 'APPROVED' "
+                    + "where not exists (select 1 from uav_registration where drone_sn = ?)", sn, regId, sn);
+                // 长期已批准计划（30 天窗口，覆盖黑飞白名单判定）
+                jdbc.update("insert into flight_plan (plan_code, plan_status, drone_sn, departure, destination, "
+                    + "planned_start, planned_end, alt_ceiling_m, flight_purpose, create_time) "
+                    + "values (?, 'APPROVED', ?, '通州大运河巡检起降场', ?, now() - interval '1 hour', now() + interval '30 days', 300, ?, now())",
+                    code, sn, destination, purpose);
+                // 关闭这些机的存量黑飞告警（已合规，无需等待 30 分钟陈旧过期）
+                jdbc.update("update alarm_record set status = 'CLOSED', closed_time = now() "
+                    + "where alarm_type = 'NO_FLIGHT_PLAN' and status = 'OPEN' and drone_sn = ?", sn);
+                seeded++;
+            }
+            log.info("合规 STRESS 机初始化：{} 架已补登记 + 长期已批准计划", seeded);
+        }
+
         Integer airports = jdbc.queryForObject("select count(*) from uav_airport", Integer.class);
         if (airports != null && airports == 0) {
             seedAirport("亦庄滨河公园起降场", "AP-YZ-01", "ALL", 116.5021, 39.7183, 32.0, 8, "亦庄新城低空物流枢纽");

@@ -179,6 +179,19 @@
 
 ---
 
+---
+
+## 追加任务九：STRESS 机群部分合规化（红蓝混合态势）
+
+**实施记录（2026-09-12 完成验收）**
+- flight-plan InfraInitializer 新增种子：每 5 架 STRESS 取 1 架（200 架）补实名登记（APPROVED）+ 长期已批准计划（30 天窗口，含起降场/任务性质），启动时幂等播种；同时关闭这些机的存量黑飞告警（无需等 30 分钟陈旧过期）。
+- 效果：监控页红蓝混合（200 蓝合规 / 800 红黑飞），黑飞告警仅对剩余 800 架产生；FlightPlan 列表含 200 条合规计划（字典标签正常）。
+- 验收：/api/alarm/active 中 NO_PLAN 开启数 1005→805；像素统计蓝/红混合；白名单 30s 刷新后合规机不再产生黑飞告警。
+
+**状态**：[x] 已完成（2026-09-12）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。
