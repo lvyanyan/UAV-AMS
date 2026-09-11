@@ -31,7 +31,7 @@ spring:
         - id: uav-flight-plan
           uri: http://localhost:8088
           predicates:
-            - Path=/api/flight-plan/**
+            - Path=/api/flight-plan/**,/api/route/**,/api/airport/**
         - id: uav-alarm-engine
           uri: http://localhost:8095
           predicates:

@@ -46,6 +46,19 @@ function loadImg(url) {
   })
 }
 
+// 告警等级 → Point 颜色（与告警中心 tag 配色一致）
+const _alertColorCache = {}
+function alertPointColor(level) {
+  const key = level || 'NORMAL'
+  if (!_alertColorCache[key]) {
+    if (['CRITICAL', 'MAJOR', 'EMERGENCY'].includes(key)) _alertColorCache[key] = Cesium.Color.fromCssColorString('#f56c6c')
+    else if (['SERIOUS', 'WARNING'].includes(key)) _alertColorCache[key] = Cesium.Color.fromCssColorString('#e6a23c')
+    else if (key === 'MINOR') _alertColorCache[key] = Cesium.Color.fromCssColorString('#409eff')
+    else _alertColorCache[key] = Cesium.Color.CORNFLOWERBLUE
+  }
+  return _alertColorCache[key]
+}
+
 function getCamH(v) {
   if (!v || !v.camera) return 0
   return Cesium.Cartographic.fromCartesian(v.camera.position).height
@@ -202,9 +215,12 @@ export function useLodDroneRenderer(viewerRef) {
         else if (['WARNING','MINOR'].includes(_alvl[idx])) img = _imgW
         if (img && b.image !== img) b.image = img
       } else {
-        // 万级机队：中高空统一走 PointPrimitiveCollection（真实遥测位置）
+        // 万级机队：中高空统一走 PointPrimitiveCollection（真实遥测位置 + 告警等级着色）
         const p = getPt(idx)
-        if (p) p.position = cart
+        if (!p) return
+        p.position = cart
+        const col = alertPointColor(_alvl[idx])
+        if (p.color !== col) p.color = col
       }
     } catch (e) {}
   }

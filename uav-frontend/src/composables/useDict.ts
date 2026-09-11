@@ -37,8 +37,16 @@ const FALLBACK: Record<string, DictItem[]> = {
     { value: 'SERIOUS', label: '严重' }, { value: 'WARNING', label: '警告' },
     { value: 'GENERAL', label: '一般' }, { value: 'MINOR', label: '轻微' },
   ],
+  route_direction: [
+    { value: 'ONE_WAY', label: '单向' }, { value: 'TWO_WAY', label: '双向' },
+  ],
+  airport_type: [
+    { value: 'TAKEOFF', label: '起飞场' }, { value: 'LANDING', label: '降落场' },
+    { value: 'ALL', label: '综合起降场' },
+  ],
   alarm_type: [
-    { value: 'TERRAIN_COLLISION', label: '地形碰撞' }, { value: 'AIRSPACE', label: '空域违规' },
+    { value: 'TERRAIN_COLLISION', label: '地形碰撞' },
+    { value: 'NO_FLIGHT_PLAN', label: '无计划飞行' }, { value: 'AIRSPACE', label: '空域违规' },
     { value: 'NO_PLAN', label: '无计划飞行' }, { value: 'ALTITUDE', label: '高度超限' },
     { value: 'SPEED', label: '超速飞行' }, { value: 'GEOFENCE', label: '围栏闯入' },
     { value: 'CONFLICT', label: '飞行冲突' }, { value: 'ROUTE', label: '航路偏离' },

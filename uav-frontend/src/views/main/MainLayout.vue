@@ -7,6 +7,8 @@
         <el-menu-item index="/flight-monitor"><el-icon><Monitor /></el-icon><span>飞行监控</span></el-menu-item>
         <el-menu-item index="/flight-plan"><el-icon><Document /></el-icon><span>飞行计划</span></el-menu-item>
         <el-menu-item index="/airspace"><el-icon><MapLocation /></el-icon><span>空域管理</span></el-menu-item>
+        <el-menu-item index="/air-route"><el-icon><Guide /></el-icon><span>航路管理</span></el-menu-item>
+        <el-menu-item index="/airport"><el-icon><LocationInformation /></el-icon><span>起降场管理</span></el-menu-item>
         <el-menu-item index="/registry"><el-icon><Files /></el-icon><span>实名登记</span></el-menu-item>
         <el-menu-item index="/pilot"><el-icon><UserFilled /></el-icon><span>飞手管理</span></el-menu-item>
         <el-menu-item index="/alarm"><el-icon><Bell /></el-icon><span>告警中心</span></el-menu-item>

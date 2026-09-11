@@ -60,14 +60,27 @@
     <el-dialog v-model="dialogVisible" :title="editingPlan.id ? '编辑计划' : '新建计划'" width="600px">
       <el-form :model="form" label-width="100px">
         <el-form-item label="计划编号"><el-input v-model="form.planCode" placeholder="自动生成" disabled /></el-form-item>
+        <el-form-item label="无人机SN"><el-input v-model="form.droneSn" placeholder="无人机序列号" /></el-form-item>
         <el-form-item label="飞手">
           <el-select v-model="form.pilotId" style="width:100%" placeholder="选择飞手">
             <el-option v-for="pl in pilots" :key="pl.id" :label="pl.pilotName" :value="pl.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="无人机SN"><el-input v-model="form.droneSn" placeholder="无人机序列号" /></el-form-item>
-        <el-form-item label="起飞点"><el-input v-model="form.departure" placeholder="如 大兴区应急物资库" /></el-form-item>
-        <el-form-item label="降落点"><el-input v-model="form.destination" placeholder="如 廊坊高新区物流枢纽" /></el-form-item>
+        <el-form-item label="航路">
+          <el-select v-model="form.routeId" style="width:100%" placeholder="选择已启用航路" clearable>
+            <el-option v-for="r in routes" :key="r.id" :label="`${r.routeName} (${r.routeCode})`" :value="r.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="起飞点">
+          <el-select v-model="form.departure" style="width:100%" placeholder="选择起飞场" filterable allow-create>
+            <el-option v-for="a in airports" :key="a.id" :label="`${a.airportName} (${typeLabel(a.airportType)})`" :value="a.airportName" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="降落点">
+          <el-select v-model="form.destination" style="width:100%" placeholder="选择降落场" filterable allow-create>
+            <el-option v-for="a in airports" :key="a.id" :label="`${a.airportName} (${typeLabel(a.airportType)})`" :value="a.airportName" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="开始时间"><el-date-picker v-model="form.plannedStart" type="datetime" style="width:100%" /></el-form-item>
         <el-form-item label="结束时间"><el-date-picker v-model="form.plannedEnd" type="datetime" style="width:100%" /></el-form-item>
         <el-form-item label="最大高度(m)"><el-input-number v-model="form.altCeilingM" :min="0" :max="5000" style="width:100%" /></el-form-item>
@@ -99,6 +112,8 @@ import { pilotApi } from '@/api/pilot'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
+import { routeApi, type UavRoute } from '@/api/route'
+import { airportApi, type UavAirport } from '@/api/airport'
 
 const plans = ref<FlightPlan[]>([])
 const loading = ref(false)
@@ -117,6 +132,9 @@ const form = ref<FlightPlan>({
 })
 
 const pilots = ref<any[]>([])
+const routes = ref<UavRoute[]>([])
+const airports = ref<UavAirport[]>([])
+const { label: typeLabel } = useDict('airport_type')
 const pilotNames = ref<Record<number, string>>({})
 
 onMounted(async () => {
@@ -127,6 +145,8 @@ onMounted(async () => {
     for (const p of ((res as any).data || [])) m[p.id] = p.pilotName
     pilotNames.value = m
     pilots.value = (res as any).data || []
+    routes.value = ((await routeApi.list(true) as any).data) || []
+    airports.value = ((await airportApi.list(true) as any).data) || []
   } catch (e) {}
 })
 

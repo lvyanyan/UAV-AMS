@@ -459,6 +459,9 @@ function onTelemetry(data) {
 }
 
 function applyData(data, id) {
+  // 告警事件积累的等级合入遥测，供渲染器按级别着色
+  const meta = droneMeta.get(id)
+  if (meta && meta.alertLevel) data.alertLevel = meta.alertLevel
   let slot = droneMap.get(id)
   if (slot === undefined) {
     // 新无人机 → 扩容

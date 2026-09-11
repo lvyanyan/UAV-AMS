@@ -73,6 +73,23 @@
 
 ---
 
+---
+
+## 追加任务二：飞行业务闭环（航路/起降场/黑飞告警/合规审批/告警着色）
+
+**实施记录（2026-09-12 完成验收）**
+- **黑飞（无计划飞行）告警**：alarm-engine TelemetryConsumer 新增规则——维护「已登记且当前时段有已批准计划」白名单（30s 刷新），SN 不在名单即告 NO_FLIGHT_PLAN/SERIOUS，同机 10 分钟限频。实测 1005 架 STRESS 无人机被标记黑飞，已登记 REG-UAV 不误报。
+- **航路管理**：flight-plan 模块新增 UavRoute 实体/服务 + InfraController（/api/route CRUD + /api/route/check 禁飞区预检），种子 3 条北京走廊航路；前端 AirRoute.vue（航点编辑器 + 禁飞区预检按钮）。
+- **起降场管理**：新表 uav_airport（InfraInitializer 建表 + 4 个北京起降场种子）+ /api/airport CRUD + 预检；前端 Airport.vue。
+- **审批合规校验**：提交计划时汇聚起降场坐标 + 航路点，对 NO_FLY 空域 GeoJSON 做射线法 point-in-polygon 判定，命中硬拒绝并返回违规原因（如"坐标(...) 位于禁飞区「天安门核心禁飞区」"）。
+- **监控点告警着色**：useLodDroneRenderer mid 层 PointPrimitive 按 droneMeta 告警等级着色（危急红 #f56c6c / 警告橙 #e6a23c / 一般蓝），低层 Billboard 原有图标色逻辑不变。
+- 网关路由 /api/route/**、/api/airport/** → 8088；字典新增 route_direction/airport_type 分组与 NO_FLIGHT_PLAN 告警类型。
+- 验收：航路 3 条/起降场 4 个 CRUD 可用；黑飞告警入库；监控点出现红色告警点；e2e 无 pageerror。
+
+**状态**：[x] 已完成（2026-09-12）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。
