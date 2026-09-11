@@ -48,14 +48,20 @@ self.onmessage = (e) => {
     return
   }
 
-  const pos = new Float64Array(count * 3)
-  const meta = new Float32Array(count * 2)
-  const ll = new Float32Array(count * 2)
   const isCell = magic === MAGIC_CELL
+
+  // 客户端抽稀：原始点超过 MAX_OUT 时等步长抽取（100万 @1/5 → 20万），只转换留下的点
+  const MAX_OUT = 200000
+  const stride = isCell ? 1 : Math.max(1, Math.ceil(count / MAX_OUT))
+  const outCount = Math.ceil(count / stride)
+
+  const pos = new Float64Array(outCount * 3)
+  const meta = new Float32Array(outCount * 2)
+  const ll = new Float32Array(outCount * 2)
 
   if (isCell) {
     // cell：[lon,lat,count,alertAvg] ×16B → 点大小∝count
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < outCount; i++) {
       const o = 16 + i * 16
       const lon = dv.getFloat32(o, true)
       const lat = dv.getFloat32(o + 4, true)
@@ -70,24 +76,25 @@ self.onmessage = (e) => {
       ll[i * 2] = lat; ll[i * 2 + 1] = lon
     }
   } else {
-    // raw：[lon,lat,alt,hdg,alert] ×20B
-    for (let i = 0; i < count; i++) {
-      const o = 16 + i * 20
+    // raw：[lon,lat,alt,hdg,alert] ×20B，按 stride 抽取
+    for (let i = 0, o = 16, w = 0; i < count; i++, o += 20) {
+      if (i % stride) continue
       const lon = dv.getFloat32(o, true)
       const lat = dv.getFloat32(o + 4, true)
       const alt = dv.getFloat32(o + 8, true)
       const heading = dv.getFloat32(o + 12, true)
       const alert = dv.getFloat32(o + 16, true)
       const [x, y, z] = ecef(lon, lat, alt)
-      pos[i * 3] = x; pos[i * 3 + 1] = y; pos[i * 3 + 2] = z
-      meta[i * 2] = alert
-      meta[i * 2 + 1] = heading
-      ll[i * 2] = lat; ll[i * 2 + 1] = lon
+      pos[w * 3] = x; pos[w * 3 + 1] = y; pos[w * 3 + 2] = z
+      meta[w * 2] = alert
+      meta[w * 2 + 1] = heading
+      ll[w * 2] = lat; ll[w * 2 + 1] = lon
+      w++
     }
   }
 
   self.postMessage(
-    { pos: pos.buffer, meta: meta.buffer, ll: ll.buffer, count, serverCount: count, isCell },
+    { pos: pos.buffer, meta: meta.buffer, ll: ll.buffer, count: outCount, serverCount: count, isCell },
     [pos.buffer, meta.buffer, ll.buffer]
   )
 }

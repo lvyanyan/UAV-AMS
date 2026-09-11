@@ -25,6 +25,7 @@ func main() {
 	lat := flag.Float64("lat", 39.9042, "中心纬度")
 	lon := flag.Float64("lon", 116.4074, "中心经度")
 	radius := flag.Float64("radius", 50.0, "活动半径 km")
+	full := flag.Bool("full", false, "全量广播模式：忽略视锥，每帧推全部原始点（100万×20B@5Hz≈100MB/s）")
 	flag.Parse()
 
 	var fleetPtr atomic.Pointer[fleet.Fleet]
@@ -41,6 +42,10 @@ func main() {
 	// 帧生成器：按视野分流（高空聚合 / 低空裁剪）
 	gen := func(vp fleet.Viewport, dst []byte, tsMs int64) int {
 		f := fleetPtr.Load()
+		if *full {
+			f.WriteFrame(dst, tsMs)
+			return f.FrameSize()
+		}
 		// 没上报过视野（Height==0）→ 用默认全局高空
 		if vp.Height <= 0 {
 			vp = defaultVP
