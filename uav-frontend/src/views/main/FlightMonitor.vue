@@ -56,6 +56,7 @@ function initMap() {
   viewer = new Cesium.Viewer(cesiumContainer.value, {
     imageryProvider: false,
     terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+    creditContainer: document.createElement('div'),
     timeline: false, animation: false, baseLayerPicker: false,
     fullscreenButton: false, geocoder: false, homeButton: false,
     infoBox: false, sceneModePicker: false, navigationHelpButton: false,
@@ -64,8 +65,16 @@ function initMap() {
   })
   viewerRef.value = viewer
   viewer.imageryLayers.removeAll()
-  viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({ url: 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}', maximumLevel: 18 }))
-  viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({ url: 'https://webst01.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}', maximumLevel: 18 }))
+  viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+    url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+    subdomains: ['1', '2', '3', '4'],
+    maximumLevel: 18,
+  }))
+  viewer.imageryLayers.addImageryProvider(new Cesium.UrlTemplateImageryProvider({
+    url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
+    subdomains: ['1', '2', '3', '4'],
+    maximumLevel: 18,
+  }))
   if (viewer.scene.fog) viewer.scene.fog.enabled = false
   if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = false
   viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(116.397, 39.908, 15000), orientation: { heading: 0, pitch: Cesium.Math.toRadians(-30), roll: 0 } })
