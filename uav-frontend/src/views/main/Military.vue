@@ -14,12 +14,12 @@
             <el-option label="上海管制空域B区" value="SH-B" />
             <el-option label="广州管制空域C区" value="GZ-C" />
           </el-select>
-          <el-button type="danger" @click="clearAirspace" :disabled="!clearArea">🚨 执行清场</el-button>
+          <el-button type="danger" @click="clearAirspace" :disabled="!clearArea">执行清场</el-button>
         </el-card>
       </el-col>
 
       <el-col :span="12">
-        <el-card header="⚡ 快速军事批准">
+        <el-card header="快速军事批准">
           <p style="color:#909399;margin-bottom:12px">对飞行计划一键批准，跳过全部审批链</p>
           <el-input-number v-model="approvePlanId" :min="1" placeholder="输入计划ID" style="width:100%;margin-bottom:12px" />
           <el-button type="primary" @click="oneClickApprove" :disabled="!approvePlanId">✅ 一键军事批准</el-button>
@@ -37,7 +37,7 @@
       </el-col>
 
       <el-col :span="12">
-        <el-card header="📋 军事调度日志">
+        <el-card header="军事调度日志">
           <el-timeline>
             <el-timeline-item timestamp="2026-05-28 10:00" placement="top">军事批准 计划#1003 — 紧急救援调度</el-timeline-item>
             <el-timeline-item timestamp="2026-05-27 16:30" placement="top">空域清场 BJ-A区 — 军事演习</el-timeline-item>
@@ -60,7 +60,7 @@ const cancelPlanId = ref<number | null>(null)
 const cancelReason = ref('')
 
 async function clearAirspace() {
-  await ElMessageBox.confirm(`确定清场 ${clearArea.value}？所有非军事无人机将被强制返航！`, '⚠️ 军事清场确认', { confirmButtonText: '确认执行', type: 'error' })
+  await ElMessageBox.confirm(`确定清场 ${clearArea.value}？所有非军事无人机将被强制返航！`, '军事清场确认', { confirmButtonText: '确认执行', type: 'error' })
   ElMessage.success(`空域 ${clearArea.value} 已清场，Return-to-Launch 指令已下发`)
 }
 

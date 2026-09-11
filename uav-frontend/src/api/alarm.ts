@@ -17,8 +17,8 @@ export interface AlarmEvent {
 
 export const alarmApi = {
   list: (): Promise<R<AlarmEvent[]>> => request.get('/alarm/list'),
-  listByDrone: (droneSn: string): Promise<R<AlarmEvent[]>> => request.get(`/api/alarm/drone/${droneSn}`),
-  handle: (id: number): Promise<R<AlarmEvent>> => request.put(`/api/alarm/${id}/handle`),
+  listByDrone: (droneSn: string): Promise<R<AlarmEvent[]>> => request.get(`/alarm/drone/${droneSn}`),
+  handle: (id: number): Promise<R<AlarmEvent>> => request.put(`/alarm/${id}/handle`),
   stats: (): Promise<R<{ total: number; byType: Record<string,number>; byLevel: Record<string,number> }>> =>
     request.get('/alarm/stats'),
 }

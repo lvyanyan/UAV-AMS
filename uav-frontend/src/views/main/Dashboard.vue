@@ -20,19 +20,19 @@
     <el-row :gutter="14" class="mid-row">
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b>🚦 告警级别分布</b></template>
+          <template #header><b class="panel-title"><el-icon><Warning /></el-icon> 告警级别分布</b></template>
           <div ref="levelChartEl" class="chart" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b>⚠️ 告警类型 TOP5</b></template>
+          <template #header><b class="panel-title"><el-icon><Histogram /></el-icon> 告警类型 TOP5</b></template>
           <div ref="typeChartEl" class="chart" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b>📋 飞行计划状态</b></template>
+          <template #header><b class="panel-title"><el-icon><Document /></el-icon> 飞行计划状态</b></template>
           <div ref="planChartEl" class="chart" />
         </el-card>
       </el-col>
@@ -42,18 +42,18 @@
     <el-row :gutter="14" class="bottom-row">
       <el-col :span="16">
         <el-card shadow="never" class="panel">
-          <template #header><b>📈 近 30 分钟告警趋势</b></template>
+          <template #header><b class="panel-title"><el-icon><TrendCharts /></el-icon> 近 30 分钟告警趋势</b></template>
           <div ref="trendChartEl" class="chart trend" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b>⚡ 快捷操作</b></template>
+          <template #header><b class="panel-title"><el-icon><Lightning /></el-icon> 快捷操作</b></template>
           <div class="quick-actions">
-            <el-button type="primary" @click="$router.push('/flight-monitor')">🛰️ 飞行监控大屏</el-button>
-            <el-button type="success" @click="$router.push('/flight-plan')">📋 飞行计划审批</el-button>
-            <el-button type="warning" @click="$router.push('/alarm')">🔔 告警中心</el-button>
-            <el-button type="info" @click="$router.push('/airspace')">🗺️ 空域配置</el-button>
+            <el-button type="primary" @click="$router.push('/flight-monitor')"><el-icon><Monitor /></el-icon>&nbsp;飞行监控大屏</el-button>
+            <el-button type="success" @click="$router.push('/flight-plan')"><el-icon><Document /></el-icon>&nbsp;飞行计划审批</el-button>
+            <el-button type="warning" @click="$router.push('/alarm')"><el-icon><Bell /></el-icon>&nbsp;告警中心</el-button>
+            <el-button type="info" @click="$router.push('/airspace')"><el-icon><MapLocation /></el-icon>&nbsp;空域配置</el-button>
           </div>
         </el-card>
       </el-col>
@@ -63,18 +63,20 @@
     <el-row :gutter="14" class="bottom-row">
       <el-col :span="24">
         <el-card shadow="never" class="panel">
-          <template #header><b>🔴 最新告警</b></template>
+          <template #header><b class="panel-title"><el-icon><Bell /></el-icon> 最新告警</b></template>
           <el-table :data="recentAlarms" border size="small" max-height="240">
             <el-table-column prop="createTime" label="时间" width="150">
               <template #default="{ row }">{{ fmtTime(row.createTime) }}</template>
             </el-table-column>
             <el-table-column prop="alarmLevel" label="级别" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.alarmLevel === 'CRITICAL' ? 'danger' : 'warning'" size="small">{{ row.alarmLevel }}</el-tag>
+                <el-tag :type="row.alarmLevel === 'CRITICAL' ? 'danger' : 'warning'" size="small">{{ levelLabel(row.alarmLevel) }}</el-tag>
               </template>
             </el-table-column>
             <el-table-column prop="droneSn" label="无人机SN" width="140" />
-            <el-table-column prop="alarmType" label="类型" min-width="150" />
+            <el-table-column prop="alarmType" label="类型" min-width="150">
+              <template #default="{ row }">{{ typeLabel(row.alarmType) }}</template>
+            </el-table-column>
             <el-table-column prop="message" label="内容" min-width="160" />
           </el-table>
         </el-card>
@@ -139,6 +141,7 @@ let planChart: echarts.ECharts | null = null
 let trendChart: echarts.ECharts | null = null
 
 const { label: levelLabel } = useDict('alarm_level')
+const { label: typeLabel } = useDict('alarm_type')
 const { label: statusLabel } = useDict('plan_status')
 
 function emptyOption(text: string): echarts.EChartsCoreOption {
@@ -167,6 +170,7 @@ function renderLevelChart() {
 
 function renderTypeChart() {
   const top = Object.entries(alarmByType.value).sort((a, b) => b[1] - a[1]).slice(0, 5)
+    .map(([code, count]) => ({ code, label: typeLabel(code), count }))
   if (!top.length) { typeChart?.setOption(emptyOption('暂无告警类型'), true); return }
   typeChart?.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
@@ -174,12 +178,12 @@ function renderTypeChart() {
     xAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2e47' } } },
     yAxis: {
       type: 'category', inverse: true,
-      data: top.map(t => t[0]),
+      data: top.map(t => t.label),
       axisLabel: { color: '#c6d2e2', fontSize: 11 },
       axisLine: { show: false }, axisTick: { show: false },
     },
     series: [{
-      type: 'bar', barWidth: 14, data: top.map(t => t[1]),
+      type: 'bar', barWidth: 14, data: top.map(t => t.count),
       itemStyle: { color: C.orange, borderRadius: [0, 7, 7, 0] },
       label: { show: true, position: 'right', color: '#e6edf8', fontSize: 11 },
     }],
@@ -297,6 +301,8 @@ onUnmounted(() => {
 .stat-value { font-size: 32px; font-weight: 700; color: var(--el-text-color-primary); }
 .stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
 .panel :deep(.el-card__header) { padding: 10px 16px; background: var(--el-fill-color-lighter); }
+.panel-title { display: inline-flex; align-items: center; gap: 6px; color: var(--el-text-color-primary); }
+.panel-title .el-icon { color: var(--el-color-primary); }
 .chart { height: 265px; width: 100%; }
 .chart.trend { height: 225px; }
 .mid-row { margin-bottom: 14px; }

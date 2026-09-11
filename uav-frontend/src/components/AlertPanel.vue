@@ -1,7 +1,7 @@
 <template>
   <div class="alert-panel" :class="{ collapsed }">
     <div class="alert-header" @click="collapsed = !collapsed">
-      <span>🚨 告警列表 ({{ alerts.length }})</span>
+      <span class="ap-title"><el-icon><BellFilled /></el-icon> 告警列表 ({{ alerts.length }})</span>
       <span class="toggle">{{ collapsed ? '展开' : '收起' }}</span>
       <button class="clear-btn" @click.stop="$emit('clear')">清空</button>
     </div>
@@ -26,6 +26,7 @@ const collapsed = ref(false)
 </script>
 
 <style scoped>
+.ap-title { display:inline-flex; align-items:center; gap:6px; color:#ff6b6b; }>
 @keyframes alertPulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }

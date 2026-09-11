@@ -26,10 +26,10 @@ export const systemApi = {
   // 用户管理
   listUsers: (): Promise<R<SysUser[]>> => request.get('/user/list'),
   createUser: (data: SysUser): Promise<R<SysUser>> => request.post('/user', data),
-  updateUser: (id: number, data: SysUser): Promise<R<SysUser>> => request.put(`/api/user/${id}`, data),
-  deleteUser: (id: number): Promise<R<any>> => request.delete(`/api/user/${id}`),
-  enableUser: (id: number): Promise<R<SysUser>> => request.put(`/api/user/${id}/enable`),
-  disableUser: (id: number): Promise<R<SysUser>> => request.put(`/api/user/${id}/disable`),
+  updateUser: (id: number, data: SysUser): Promise<R<SysUser>> => request.put(`/user/${id}`, data),
+  deleteUser: (id: number): Promise<R<any>> => request.delete(`/user/${id}`),
+  enableUser: (id: number): Promise<R<SysUser>> => request.put(`/user/${id}/enable`),
+  disableUser: (id: number): Promise<R<SysUser>> => request.put(`/user/${id}/disable`),
 
   // 角色管理
   listRoles: (): Promise<R<SysRole[]>> => request.get('/role/list'),

@@ -31,18 +31,18 @@ export interface FlightPlanApproval {
 
 export const flightPlanApi = {
   create: (data: FlightPlan): Promise<R<FlightPlan>> => request.post('/flight-plan', data),
-  getById: (id: number): Promise<R<FlightPlan>> => request.get(`/api/flight-plan/${id}`),
+  getById: (id: number): Promise<R<FlightPlan>> => request.get(`/flight-plan/${id}`),
   list: (): Promise<R<FlightPlan[]>> => request.get('/flight-plan/list'),
-  listByStatus: (status: string): Promise<R<FlightPlan[]>> => request.get(`/api/flight-plan/list/status/${status}`),
-  update: (id: number, data: FlightPlan): Promise<R<FlightPlan>> => request.put(`/api/flight-plan/${id}`, data),
-  submit: (id: number): Promise<R<FlightPlan>> => request.put(`/api/flight-plan/${id}/submit`),
+  listByStatus: (status: string): Promise<R<FlightPlan[]>> => request.get(`/flight-plan/list/status/${status}`),
+  update: (id: number, data: FlightPlan): Promise<R<FlightPlan>> => request.put(`/flight-plan/${id}`, data),
+  submit: (id: number): Promise<R<FlightPlan>> => request.put(`/flight-plan/${id}/submit`),
   approve: (id: number, approverId: number, comment?: string): Promise<R<FlightPlan>> =>
-    request.put(`/api/flight-plan/${id}/approve`, null, { params: { approverId, comment } }),
+    request.put(`/flight-plan/${id}/approve`, null, { params: { approverId, comment } }),
   reject: (id: number, approverId: number, comment: string): Promise<R<FlightPlan>> =>
-    request.put(`/api/flight-plan/${id}/reject`, null, { params: { approverId, comment } }),
+    request.put(`/flight-plan/${id}/reject`, null, { params: { approverId, comment } }),
   militaryApprove: (id: number, approverId: number): Promise<R<FlightPlan>> =>
-    request.put(`/api/flight-plan/${id}/military-one-click`, null, { params: { militaryApproverId: approverId } }),
+    request.put(`/flight-plan/${id}/military-one-click`, null, { params: { militaryApproverId: approverId } }),
   militaryCancel: (id: number, approverId: number, reason: string): Promise<R<FlightPlan>> =>
-    request.put(`/api/flight-plan/${id}/military-cancel`, null, { params: { militaryApproverId: approverId, reason } }),
-  getApprovals: (id: number): Promise<R<FlightPlanApproval[]>> => request.get(`/api/flight-plan/${id}/approvals`),
+    request.put(`/flight-plan/${id}/military-cancel`, null, { params: { militaryApproverId: approverId, reason } }),
+  getApprovals: (id: number): Promise<R<FlightPlanApproval[]>> => request.get(`/flight-plan/${id}/approvals`),
 }

@@ -18,9 +18,9 @@ export interface Airspace {
 
 export const airspaceApi = {
   create: (data: Airspace): Promise<R<Airspace>> => request.post('/airspace', data),
-  getById: (id: number): Promise<R<Airspace>> => request.get(`/api/airspace/${id}`),
+  getById: (id: number): Promise<R<Airspace>> => request.get(`/airspace/${id}`),
   list: (): Promise<R<Airspace[]>> => request.get('/airspace/list'),
-  update: (id: number, data: Airspace): Promise<R<Airspace>> => request.put(`/api/airspace/${id}`, data),
-  delete: (id: number): Promise<R<any>> => request.delete(`/api/airspace/${id}`),
+  update: (id: number, data: Airspace): Promise<R<Airspace>> => request.put(`/airspace/${id}`, data),
+  delete: (id: number): Promise<R<any>> => request.delete(`/airspace/${id}`),
   getGeoJson: (): Promise<R<any>> => request.get('/airspace/geojson'),
 }

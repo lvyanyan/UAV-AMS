@@ -25,13 +25,13 @@ export interface UavPilotMedical {
 
 export const pilotApi = {
   create: (data: UavPilot): Promise<R<UavPilot>> => request.post('/pilot', data),
-  getById: (id: number): Promise<R<UavPilot>> => request.get(`/api/pilot/${id}`),
+  getById: (id: number): Promise<R<UavPilot>> => request.get(`/pilot/${id}`),
   list: (): Promise<R<UavPilot[]>> => request.get('/pilot/list'),
-  update: (id: number, data: UavPilot): Promise<R<UavPilot>> => request.put(`/api/pilot/${id}`, data),
-  suspend: (id: number): Promise<R<UavPilot>> => request.put(`/api/pilot/${id}/suspend`),
-  reactivate: (id: number): Promise<R<UavPilot>> => request.put(`/api/pilot/${id}/reactivate`),
+  update: (id: number, data: UavPilot): Promise<R<UavPilot>> => request.put(`/pilot/${id}`, data),
+  suspend: (id: number): Promise<R<UavPilot>> => request.put(`/pilot/${id}/suspend`),
+  reactivate: (id: number): Promise<R<UavPilot>> => request.put(`/pilot/${id}/reactivate`),
 
   // 体检记录
-  uploadMedical: (pilotId: number, data: UavPilotMedical): Promise<R<UavPilotMedical>> => request.post(`/api/pilot/${pilotId}/medical`, data),
-  listMedical: (pilotId: number): Promise<R<UavPilotMedical[]>> => request.get(`/api/pilot/${pilotId}/medical/list`),
+  uploadMedical: (pilotId: number, data: UavPilotMedical): Promise<R<UavPilotMedical>> => request.post(`/pilot/${pilotId}/medical`, data),
+  listMedical: (pilotId: number): Promise<R<UavPilotMedical[]>> => request.get(`/pilot/${pilotId}/medical/list`),
 }

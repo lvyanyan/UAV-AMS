@@ -51,11 +51,7 @@
         <el-form-item label="名称"><el-input v-model="form.airspaceName" /></el-form-item>
         <el-form-item label="类型">
           <el-select v-model="form.airspaceType" style="width:100%">
-            <el-option label="管制区" value="CONTROL" />
-            <el-option label="作业区" value="OPERATION" />
-            <el-option label="走廊" value="CORRIDOR" />
-            <el-option label="演示示范区" value="DEMO" />
-            <el-option label="禁飞区" value="NO_FLY" />
+            <el-option v-for="d in airspaceTypeItems" :key="d.value" :label="d.label" :value="d.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="底高(m)"><el-input-number v-model="form.altFloorM" :min="0" style="width:100%" /></el-form-item>
@@ -120,5 +116,5 @@ function typeTag(t: string): any {
   const map: Record<string,string> = { CONTROL:'danger', NO_FLY:'danger', OPERATION:'warning', CORRIDOR:'success', DEMO:'primary', CONTROLLED:'warning', SUITABLE:'success', TEMP_NO_FLY:'danger' }
   return map[t] || 'info'
 }
-const { label: typeLabel } = useDict('airspace_type')
+const { items: airspaceTypeItems, label: typeLabel } = useDict('airspace_type')
 </script>

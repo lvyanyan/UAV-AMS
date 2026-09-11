@@ -29,16 +29,16 @@ export interface UavRegistration {
 export const registryApi = {
   // 所有人登记
   registerOwner: (data: UavOwner): Promise<R<UavOwner>> => request.post('/registry/owner', data),
-  getOwner: (id: number): Promise<R<UavOwner>> => request.get(`/api/registry/owner/${id}`),
+  getOwner: (id: number): Promise<R<UavOwner>> => request.get(`/registry/owner/${id}`),
   listOwners: (): Promise<R<UavOwner[]>> => request.get('/registry/owner/list'),
-  approveOwner: (id: number): Promise<R<UavOwner>> => request.put(`/api/registry/owner/${id}/approve`),
-  rejectOwner: (id: number): Promise<R<UavOwner>> => request.put(`/api/registry/owner/${id}/reject`),
+  approveOwner: (id: number): Promise<R<UavOwner>> => request.put(`/registry/owner/${id}/approve`),
+  rejectOwner: (id: number): Promise<R<UavOwner>> => request.put(`/registry/owner/${id}/reject`),
 
   // 无人机登记
   registerDrone: (data: UavRegistration): Promise<R<UavRegistration>> => request.post('/registry/drone', data),
-  getDrone: (id: number): Promise<R<UavRegistration>> => request.get(`/api/registry/drone/${id}`),
+  getDrone: (id: number): Promise<R<UavRegistration>> => request.get(`/registry/drone/${id}`),
   listDrones: (): Promise<R<UavRegistration[]>> => request.get('/registry/drone/list'),
-  listDronesByOwner: (ownerId: number): Promise<R<UavRegistration[]>> => request.get(`/api/registry/drone/by-owner/${ownerId}`),
-  approveDrone: (id: number): Promise<R<UavRegistration>> => request.put(`/api/registry/drone/${id}/approve`),
-  rejectDrone: (id: number): Promise<R<UavRegistration>> => request.put(`/api/registry/drone/${id}/reject`),
+  listDronesByOwner: (ownerId: number): Promise<R<UavRegistration[]>> => request.get(`/registry/drone/by-owner/${ownerId}`),
+  approveDrone: (id: number): Promise<R<UavRegistration>> => request.put(`/registry/drone/${id}/approve`),
+  rejectDrone: (id: number): Promise<R<UavRegistration>> => request.put(`/registry/drone/${id}/reject`),
 }

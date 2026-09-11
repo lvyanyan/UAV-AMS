@@ -67,6 +67,7 @@
 - **字典管理 UI**：System 页新增「字典管理」tab（类型筛选 + 增删改，写回全局缓存即时生效）。
 - **日期格式化**：uav-system 控制器与 alarm-engine JacksonConfig 在源头统一输出 `yyyy-MM-dd HH:mm:ss`（此前 ISO 串/微秒直出）；前端 `utils/format.ts`（fmtDateTime/fmtDate）替换各页自带的切片实现，表格统一 `YYYY-MM-DD HH:mm`。
 - 验收：空域 9 类型全部中文（机场管制区/限制区/试验区等此前漏翻的值）、各页时间统一格式、System 字典 tab 增删改查可用。
+- **二次打磨（同日，用户反馈）**：① 修全站 API 双重 /api 前缀（写操作全部 404 的根源，含告警处理按钮）；② Dashboard TOP5/最新告警接字典；③ System 拆为 用户/角色/审计/字典 四个子路由页，侧栏子菜单；④ 字典加业务分组（sys_dict_type 注册表 + /api/dict/meta + 分组折叠管理页）；⑤ 各列表表单对齐后端实体（空域类型下拉接字典、机型下拉、飞手执照等级 CAAC 真实值、计划表单 pilotId/plannedStart/plannedEnd/altCeilingM）；⑥ 全站 emoji 换 EP 图标（logo/面板头/快捷按钮/监控页）；⑦ Element Plus 中文 locale（分页「共 N 条」）。
 
 **状态**：[x] 已完成（2026-09-11）
 

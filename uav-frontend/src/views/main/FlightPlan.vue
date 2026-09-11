@@ -59,13 +59,18 @@
     <!-- 新建/编辑对话框 -->
     <el-dialog v-model="dialogVisible" :title="editingPlan.id ? '编辑计划' : '新建计划'" width="600px">
       <el-form :model="form" label-width="100px">
-        <el-form-item label="计划编号"><el-input v-model="form.planNo" placeholder="自动生成" disabled /></el-form-item>
-        <el-form-item label="飞手"><el-input v-model="form.pilotName" placeholder="飞手姓名" /></el-form-item>
+        <el-form-item label="计划编号"><el-input v-model="form.planCode" placeholder="自动生成" disabled /></el-form-item>
+        <el-form-item label="飞手">
+          <el-select v-model="form.pilotId" style="width:100%" placeholder="选择飞手">
+            <el-option v-for="pl in pilots" :key="pl.id" :label="pl.pilotName" :value="pl.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="无人机SN"><el-input v-model="form.droneSn" placeholder="无人机序列号" /></el-form-item>
-        <el-form-item label="飞行区域"><el-input v-model="form.flightArea" placeholder="e.g. 北京市朝阳区" /></el-form-item>
-        <el-form-item label="开始时间"><el-date-picker v-model="form.startTime" type="datetime" style="width:100%" /></el-form-item>
-        <el-form-item label="结束时间"><el-date-picker v-model="form.endTime" type="datetime" style="width:100%" /></el-form-item>
-        <el-form-item label="最大高度(m)"><el-input-number v-model="form.maxAltitude" :min="0" :max="5000" style="width:100%" /></el-form-item>
+        <el-form-item label="起飞点"><el-input v-model="form.departure" placeholder="如 大兴区应急物资库" /></el-form-item>
+        <el-form-item label="降落点"><el-input v-model="form.destination" placeholder="如 廊坊高新区物流枢纽" /></el-form-item>
+        <el-form-item label="开始时间"><el-date-picker v-model="form.plannedStart" type="datetime" style="width:100%" /></el-form-item>
+        <el-form-item label="结束时间"><el-date-picker v-model="form.plannedEnd" type="datetime" style="width:100%" /></el-form-item>
+        <el-form-item label="最大高度(m)"><el-input-number v-model="form.altCeilingM" :min="0" :max="5000" style="width:100%" /></el-form-item>
         <el-form-item label="飞行目的"><el-input v-model="form.flightPurpose" type="textarea" :rows="2" /></el-form-item>
       </el-form>
       <template #footer>
@@ -107,10 +112,11 @@ const { page, size, total, paged } = usePaging(plans)
 const { label: statusLabel } = useDict('plan_status')
 
 const form = ref<FlightPlan>({
-  pilotName: '', droneSn: '', flightArea: '', maxAltitude: 120, flightPurpose: '',
-  startTime: '', endTime: '', planNo: ''
+  pilotId: undefined, droneSn: '', departure: '', destination: '', altCeilingM: 120, flightPurpose: '',
+  plannedStart: '', plannedEnd: '', planCode: ''
 })
 
+const pilots = ref<any[]>([])
 const pilotNames = ref<Record<number, string>>({})
 
 onMounted(async () => {
@@ -120,6 +126,7 @@ onMounted(async () => {
     const m: Record<number, string> = {}
     for (const p of ((res as any).data || [])) m[p.id] = p.pilotName
     pilotNames.value = m
+    pilots.value = (res as any).data || []
   } catch (e) {}
 })
 
@@ -135,7 +142,7 @@ async function loadPlans() {
 
 function showCreateDialog() {
   editingPlan.value = {}
-  form.value = { pilotName: '', droneSn: '', flightArea: '', maxAltitude: 120, flightPurpose: '', startTime: '', endTime: '', planNo: '' }
+  form.value = { pilotId: undefined, droneSn: '', departure: '', destination: '', altCeilingM: 120, flightPurpose: '', plannedStart: '', plannedEnd: '', planCode: '' }
   dialogVisible.value = true
 }
 

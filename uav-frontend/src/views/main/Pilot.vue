@@ -49,9 +49,10 @@
         <el-form-item label="执照号"><el-input v-model="form.licenseNo" /></el-form-item>
         <el-form-item label="执照等级">
           <el-select v-model="form.licenseLevel" style="width:100%">
-            <el-option label="视距内驾驶员" value="视距内驾驶员" />
-            <el-option label="超视距驾驶员" value="超视距驾驶员" />
-            <el-option label="超视距教员" value="超视距教员" />
+            <el-option label="CAAC 视距内驾驶员" value="CAAC 视距内驾驶员" />
+            <el-option label="CAAC 超视距驾驶员" value="CAAC 超视距驾驶员" />
+            <el-option label="CAAC 超视距教员" value="CAAC 超视距教员" />
+            <el-option label="CAAC 教员级" value="CAAC 教员级" />
           </el-select>
         </el-form-item>
         <el-form-item label="执照有效期"><el-date-picker v-model="form.licenseExpire" type="date" style="width:100%" /></el-form-item>
@@ -98,7 +99,7 @@ const medicalDialog = ref(false)
 const editing = ref<UavPilot>({})
 const currentPilotId = ref(0)
 const medicalList = ref<UavPilotMedical[]>([])
-const form = ref<UavPilot>({ pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'视距内驾驶员', licenseExpire:'' })
+const form = ref<UavPilot>({ pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'CAAC 视距内驾驶员', licenseExpire:'' })
 const medicalForm = ref<UavPilotMedical>({ pilotId:0, examDate:'', examOrg:'', result:'PASS' })
 const { page, size, total, paged } = usePaging(list)
 const { label: statusLabel } = useDict('pilot_status')
@@ -111,7 +112,7 @@ async function loadData() {
   finally { loading.value = false }
 }
 
-function showCreate() { editing.value = {}; form.value = { pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'视距内驾驶员', licenseExpire:'' }; dialogVisible.value = true }
+function showCreate() { editing.value = {}; form.value = { pilotName:'', idNumber:'', phone:'', licenseNo:'', licenseLevel:'CAAC 视距内驾驶员', licenseExpire:'' }; dialogVisible.value = true }
 function editItem(row: UavPilot) { editing.value = { ...row }; form.value = { ...row }; dialogVisible.value = true }
 
 async function saveItem() {

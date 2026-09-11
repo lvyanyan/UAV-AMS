@@ -93,8 +93,12 @@
       <el-form :model="droneForm" label-width="80px">
         <el-form-item label="SN"><el-input v-model="droneForm.droneSn" /></el-form-item>
         <el-form-item label="型号"><el-input v-model="droneForm.droneModel" /></el-form-item>
-        <el-form-item label="类型"><el-input v-model="droneForm.droneType" /></el-form-item>
-        <el-form-item label="重量(kg)"><el-input-number v-model="droneForm.droneWeight" :min="0" style="width:100%" /></el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="droneForm.droneType" style="width:100%">
+            <el-option v-for="d in droneTypeItems" :key="d.value" :label="d.label" :value="d.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="重量(g)"><el-input-number v-model="droneForm.weightG" :min="0" style="width:100%" /></el-form-item>
         <el-form-item label="所有人ID"><el-input-number v-model="droneForm.ownerId" :min="1" style="width:100%" /></el-form-item>
       </el-form>
       <template #footer>
@@ -118,9 +122,9 @@ const drones = ref<UavRegistration[]>([])
 const ownerDialog = ref(false)
 const droneDialog = ref(false)
 const ownerForm = ref<UavOwner>({ ownerName:'', idNumber:'', phone:'', email:'', address:'' })
-const droneForm = ref<UavRegistration>({ ownerId:1, droneSn:'', droneModel:'', droneType:'', droneWeight:0 })
+const droneForm = ref<UavRegistration>({ ownerId:1, droneSn:'', droneModel:'', droneType:'MULTIROTOR', weightG:0 })
 const { label: regStatusLabel } = useDict('register_status')
-const { label: droneTypeLabel } = useDict('drone_type')
+const { items: droneTypeItems, label: droneTypeLabel } = useDict('drone_type')
 const ownerPage = usePaging(owners, 10)
 const dronePage = usePaging(drones, 10)
 
@@ -134,7 +138,7 @@ async function saveOwner() { await registryApi.registerOwner(ownerForm.value); E
 async function approveOwner(row: UavOwner) { await registryApi.approveOwner(row.id!); ElMessage.success('已通过'); loadOwners() }
 async function rejectOwner(row: UavOwner) { await registryApi.rejectOwner(row.id!); ElMessage.success('已拒绝'); loadOwners() }
 
-function showDroneDialog() { droneForm.value = { ownerId:1, droneSn:'', droneModel:'', droneType:'', droneWeight:0 }; droneDialog.value = true }
+function showDroneDialog() { droneForm.value = { ownerId:1, droneSn:'', droneModel:'', droneType:'MULTIROTOR', weightG:0 }; droneDialog.value = true }
 async function saveDrone() { await registryApi.registerDrone(droneForm.value); ElMessage.success('登记成功'); droneDialog.value = false; loadDrones() }
 async function approveDrone(row: UavRegistration) { await registryApi.approveDrone(row.id!); ElMessage.success('已通过'); loadDrones() }
 async function rejectDrone(row: UavRegistration) { await registryApi.rejectDrone(row.id!); ElMessage.success('已拒绝'); loadDrones() }

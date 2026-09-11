@@ -1,7 +1,7 @@
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h2>🛩️ UAV-AMS</h2>
+      <h2><el-icon style="vertical-align:-3px;color:var(--el-color-primary)"><Promotion /></el-icon> UAV-AMS</h2>
       <p class="subtitle">无人机数字孪生监管平台</p>
       <el-form ref="formRef" :model="form" :rules="rules" size="large">
         <el-form-item prop="username">

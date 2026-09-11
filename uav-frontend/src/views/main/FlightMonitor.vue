@@ -2,27 +2,28 @@
   <div class="flight-monitor">
     <div ref="cesiumContainer" class="cesium-container" />
     <div class="top-stats">
-      <span>🛸 在线: {{ droneCount.toLocaleString() }}</span>
-      <span>⚠️ 告警: {{ alarmCount }}</span>
+      <span>在线: {{ droneCount.toLocaleString() }}</span>
+      <span>告警: {{ alarmCount }}</span>
       <span v-if="mode === 'standard'">🚁 LOD层: {{ currentLevel }}</span>
-      <span v-else>🚀 百万模式 · {{ millionFrameMode }}</span>
+      <span v-else>百万模式 · {{ millionFrameMode }}</span>
     </div>
     <div class="toolbar">
       <button @click="toggleMode" :disabled="switching" :class="{ active: mode === 'million' }">
-        🚀 {{ mode === 'million' ? '返回标准模式' : '百万模式' }}
+        <el-icon><Promotion /></el-icon>
+        {{ mode === 'million' ? '返回标准模式' : '百万模式' }}
       </button>
       <div v-if="mode === 'million'" class="scale-group">
         <button v-for="s in SCALES" :key="s.count" :class="{ active: fleetScale === s.count }" @click="setScale(s.count)">{{ s.label }}</button>
       </div>
-      <button @click="toggleAirspace">🗺️ {{ showAirspace ? '隐藏' : '显示' }}空域</button>
-      <button @click="toggleFps">📊 FPS</button>
+      <button @click="toggleAirspace">{{ showAirspace ? '隐藏' : '显示' }}空域</button>
+      <button @click="toggleFps">FPS</button>
     </div>
     <div v-if="showFps" class="fps-overlay">{{ fpsText }}</div>
     <div v-if="millionDropped > 0" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker/渲染跟不上）</div>
     <AlertPanel :alerts="alertList" />
     <!-- 百万模式：点击聚合点/原始点出现的简化标牌 -->
     <div v-if="millionLabel.visible" class="drone-label" :style="{ left: millionLabel.x + 'px', top: millionLabel.y + 'px' }" @click.stop>
-      <div class="dl-head"><span class="dl-sn">🛸 机群目标 #{{ millionLabel.index }}</span><span class="dl-close" @click="closeMillionLabel">✕</span></div>
+      <div class="dl-head"><span class="dl-sn">机群目标 #{{ millionLabel.index }}</span><span class="dl-close" @click="closeMillionLabel">✕</span></div>
       <div class="dl-row"><span class="dl-k">经度</span><span>{{ millionLabel.lon }}</span></div>
       <div class="dl-row"><span class="dl-k">纬度</span><span>{{ millionLabel.lat }}</span></div>
       <div class="dl-row"><span class="dl-k">高度</span><span>{{ millionLabel.alt }} m</span></div>
@@ -30,7 +31,7 @@
     </div>
     <!-- 点击无人机出现的 DOM 标牌 -->
     <div v-if="label.visible" class="drone-label" :style="{ left: label.x + 'px', top: label.y + 'px' }" @click.stop>
-      <div class="dl-head"><span class="dl-sn">🛸 {{ label.sn }}</span><span class="dl-close" @click="closeLabel">✕</span></div>
+      <div class="dl-head"><span class="dl-sn">{{ label.sn }}</span><span class="dl-close" @click="closeLabel">✕</span></div>
       <div class="dl-row"><span class="dl-k">航向</span><span>{{ label.heading }}°</span></div>
       <div class="dl-row"><span class="dl-k">告警</span><span :class="'alv-' + label.alertLevel">{{ label.alertText }}</span></div>
       <div class="dl-row"><span class="dl-k">计划编号</span><span>{{ label.planCode }}</span></div>

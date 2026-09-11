@@ -20,7 +20,11 @@ const routes: RouteRecordRaw[] = [
       { path: 'pilot', name: 'Pilot', component: () => import('@/views/main/Pilot.vue'), meta: { title: '驾驶员管理' } },
       { path: 'alarm', name: 'Alarm', component: () => import('@/views/main/AlarmCenter.vue'), meta: { title: '告警中心' } },
       { path: 'violation', name: 'Violation', component: () => import('@/views/main/Violation.vue'), meta: { title: '违规处置' } },
-      { path: 'system', name: 'System', component: () => import('@/views/main/System.vue'), meta: { title: '系统管理' } },
+      { path: 'system', redirect: '/system/users', meta: { title: '系统管理' } },
+      { path: 'system/users', name: 'SystemUsers', component: () => import('@/views/main/SystemUsers.vue'), meta: { title: '用户管理' } },
+      { path: 'system/roles', name: 'SystemRoles', component: () => import('@/views/main/SystemRoles.vue'), meta: { title: '角色管理' } },
+      { path: 'system/audit', name: 'SystemAudit', component: () => import('@/views/main/SystemAudit.vue'), meta: { title: '审计日志' } },
+      { path: 'system/dict', name: 'SystemDict', component: () => import('@/views/main/SystemDict.vue'), meta: { title: '字典管理' } },
       { path: 'military', name: 'Military', component: () => import('@/views/main/Military.vue'), meta: { title: '军事调度', role: 'MILITARY' } }
     ]
   }
