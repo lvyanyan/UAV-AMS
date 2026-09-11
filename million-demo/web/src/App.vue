@@ -9,10 +9,12 @@
       :dropped="dropped"
       :debug-fps="debugFps"
       :mode="mode"
+      :full="fullMode"
       @reconnect="reconnect"
       @resize="onResizeHint"
       @set-decimate="onSetDecimate"
       @toggle-debug-fps="onToggleDebugFps"
+      @set-full="onSetFull"
     />
     <div v-if="dropped > 0" class="drop-overlay">
       丢弃过时帧 {{ dropped }}（Worker/渲染跟不上）
@@ -40,6 +42,7 @@ const boundary = useBoundary(viewerRef)
 const connected = ref(false)
 const droneCount = ref(0)
 const drawnCount = ref(0)
+const fullMode = ref(false)
 const fps = ref(0)
 const dropped = ref(0)
 const debugFps = ref(true)
@@ -115,19 +118,27 @@ function updateViewport() {
   const cam = v.camera
   const rect = cam.computeViewRectangle(v.scene.globe.ellipsoid)
   if (!rect) return
-  // 服务端 Viewport 协议：{h, minLat, maxLat, minLon, maxLon}
+  // 服务端 Viewport 协议：{h, minLat, maxLat, minLon, maxLon, full}
   _lastVp = JSON.stringify({
     h: Math.round(cam.positionCartographic.height),
     minLat: +Cesium.Math.toDegrees(rect.south).toFixed(5),
     maxLat: +Cesium.Math.toDegrees(rect.north).toFixed(5),
     minLon: +Cesium.Math.toDegrees(rect.west).toFixed(5),
-    maxLon: +Cesium.Math.toDegrees(rect.east).toFixed(5)
+    maxLon: +Cesium.Math.toDegrees(rect.east).toFixed(5),
+    full: fullMode.value
   })
   const now = Date.now()
   if (ws && ws.readyState === WebSocket.OPEN && now - _lastVpSend > 200) {
     _lastVpSend = now
     ws.send(_lastVp)
   }
+}
+
+// ── 外部 Event：切换 聚合/全量 推流模式 ──
+function onSetFull(v) {
+  fullMode.value = !!v
+  _lastVpSend = 0
+  updateViewport()
 }
 
 // ── 主渲染循环 ──

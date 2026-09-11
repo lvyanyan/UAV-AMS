@@ -27,6 +27,7 @@ type Viewport struct {
 	MaxLat   float64 `json:"maxLat"`
 	MinLon   float64 `json:"minLon"`
 	MaxLon   float64 `json:"maxLon"`
+	Full     bool    `json:"full"` // 客户端请求全量广播（百万 demo），忽略视野
 }
 
 const cellThresholdHeight = 10000.0 // 米，高于此用网格聚合，低于此推原始点

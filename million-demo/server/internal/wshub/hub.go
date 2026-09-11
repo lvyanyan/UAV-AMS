@@ -113,9 +113,9 @@ func ReadPump(c *Client, onClose func()) {
 		if err != nil {
 			return
 		}
-		// 尝试解析为 viewport 上报
+		// 尝试解析为 viewport 上报（full 模式无需有效经纬度范围）
 		var vp fleet.Viewport
-		if json.Unmarshal(msg, &vp) == nil && vp.MaxLat >= vp.MinLat {
+		if json.Unmarshal(msg, &vp) == nil && (vp.Full || vp.MaxLat >= vp.MinLat) {
 			c.setViewport(vp)
 		} else {
 			log.Printf("[ws] 无法解析 viewport: %s", string(msg))

@@ -39,10 +39,10 @@ func main() {
 		New: func() interface{} { b := make([]byte, 24*1024*1024); return b },
 	}
 
-	// 帧生成器：按视野分流（高空聚合 / 低空裁剪）
+	// 帧生成器：按视野分流（高空聚合 / 低空裁剪）；-full 或客户端请求 full 时整帧推流
 	gen := func(vp fleet.Viewport, dst []byte, tsMs int64) int {
 		f := fleetPtr.Load()
-		if *full {
+		if *full || vp.Full {
 			f.WriteFrame(dst, tsMs)
 			return f.FrameSize()
 		}

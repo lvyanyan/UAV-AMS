@@ -50,6 +50,14 @@
     </div>
 
     <div class="row">
+      <label class="lbl">服务端推流模式</label>
+      <div class="slider-row">
+        <button class="mode-btn" :class="{ active: !full }" @click="$emit('set-full', false)">聚合 / 裁剪</button>
+        <button class="mode-btn" :class="{ active: full }" @click="$emit('set-full', true)">全量百万</button>
+      </div>
+    </div>
+
+    <div class="row">
       <button class="btn" @click="$emit('reconnect')">重连 WS</button>
     </div>
 
@@ -57,7 +65,7 @@
       v5 服务端视锥聚合：client 上报相机视野 →<br />
       · 高空(>10km)：server 聚合到网格(点大小∝密度)<br />
       · 低空(<10km)：server 只推视野内原始点+航向billboard<br />
-      带宽从全量100MB/s 降到 ~MB/s 级。模式显示"聚合/原始"。
+      全量百万模式：忽略视锥整帧推流，Worker 抽稀 1/5。
     </div>
   </div>
 </template>
@@ -72,10 +80,11 @@ const props = defineProps({
   fps: { type: Number, default: 0 },
   dropped: { type: Number, default: 0 },
   debugFps: { type: Boolean, default: true },
-  mode: { type: String, default: '--' }
+  mode: { type: String, default: '--' },
+  full: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['reconnect', 'resize', 'set-decimate', 'toggle-debug-fps'])
+const emit = defineEmits(['reconnect', 'resize', 'set-decimate', 'toggle-debug-fps', 'set-full'])
 
 const localCount = ref(100000)
 const localDecimate = ref(1)
@@ -123,6 +132,8 @@ function format(n) {
 .val { color: #ffd; min-width: 50px; text-align: right; font-family: monospace; }
 .btn { background: #2a5; color: #fff; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
 .btn:hover { background: #3c7; }
+.mode-btn { flex: 1; background: #223; color: #9ab; border: 1px solid #446; padding: 5px 0; border-radius: 4px; cursor: pointer; font-size: 12px; }
+.mode-btn.active { background: #2a5; color: #fff; border-color: #2a5; }
 b { color: #6f6; }
 .hint { color: #888; font-size: 11px; margin-top: 2px; }
 </style>
