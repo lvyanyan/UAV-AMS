@@ -33,18 +33,13 @@
 
 ## 任务二：仪表盘图表化（ECharts）
 
-**目标**：Dashboard.vue 从 CSS 柱状条升级为真图表，主题与飞行监控大屏一致。
+**实施记录（2026-09-11 完成验收）**
+- `npm i echarts`；Dashboard.vue 重写为四张真图表：告警级别分布→环形（byLevel，危急红/警告橙/一般蓝）、告警类型 TOP5→横向条形（byType 排序）、飞行计划状态→环形（planStatus 前端聚合，已批准绿/拒绝红/审批中蓝橙）、近 30 分钟告警趋势→红色面积折线（alarm/list 按 createTime 逐分钟分桶，窗口内无数据时显示"近 30 分钟无告警"提示）。
+- 保留六指标卡 + 最新告警表 + 快捷操作；15s 轮询；setOption(option, true) 即 notMerge；window resize 自适应；onUnmounted dispose。
+- 顺带修复：旧模板引用不存在的 `stats` 变量导致 `Cannot read properties of undefined (reading 'alarmByLevel')` 页面崩溃，重写后消失。
+- 验收：4 张 canvas 全部渲染，环形按级别/状态正确着色，趋势图呈现真实告警尖峰；e2e 无 pageerror。注意：运行中 dev server 装 echarts 后需重启 `npm run dev`（vite 依赖再优化），否则白屏。
 
-- 依赖：`npm i echarts`（uav-frontend 已有 node_modules，直接装）。
-- 图表清单：
-  1. 告警级别分布 → 环形图（数据 `/api/alarm/stats` 的 byLevel）
-  2. 告警类型 TOP5 → 横向条形（byType）
-  3. 飞行计划状态 → 环形图（flight-plan/list 按 plan_status 前端聚合）
-  4. 近 30 分钟告警趋势 → 折线/面积（前端按 alarm/list 的 createTime 分桶聚合；数据不足时显示提示）
-- 保留：六个核心指标卡 + 最新告警表 + 快捷操作。轮询 15s 刷新，图表 setOption 时 notMerge。
-- 注意：卡片/图表配色统一（蓝 #409eff 主色、红 #f56c6c 危急、橙 #e6a23c 警告、绿 #67c23a 正常）。
-
-**状态**：[ ] 未开始
+**状态**：[x] 已完成（2026-09-11）
 
 ---
 
