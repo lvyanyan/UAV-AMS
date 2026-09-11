@@ -16,6 +16,7 @@ export function useCesium(viewerRef) {
     const viewer = new Cesium.Viewer(container, {
       imageryProvider: false,
       terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      creditContainer: document.createElement('div'),
       timeline: false,
       animation: false,
       baseLayerPicker: false,
@@ -48,13 +49,15 @@ export function useCesium(viewerRef) {
     viewer.imageryLayers.removeAll()
     viewer.imageryLayers.addImageryProvider(
       new Cesium.UrlTemplateImageryProvider({
-        url: 'https://webst01.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+        url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}',
+        subdomains: ['1', '2', '3', '4'],
         maximumLevel: 18
       })
     )
     viewer.imageryLayers.addImageryProvider(
       new Cesium.UrlTemplateImageryProvider({
-        url: 'https://webst01.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
+        url: 'https://webst0{s}.is.autonavi.com/appmaptile?style=8&x={x}&y={y}&z={z}',
+        subdomains: ['1', '2', '3', '4'],
         maximumLevel: 18
       })
     )
