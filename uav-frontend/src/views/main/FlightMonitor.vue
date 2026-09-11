@@ -89,9 +89,23 @@ function connectWebSocket() {
     try {
       const msg = JSON.parse(e.data)
       if (msg.type === 'telemetry' && msg.data) onTelemetry(msg.data)
+      else if (msg.type === 'uav.alarm.event' && msg.data) onAlarmEvent(msg.data)
     } catch (_) {}
   }
   ws.onclose = () => { wsReconnectTimer = setTimeout(connectWebSocket, 2000) }
+}
+
+// ── 告警事件：uav.alarm.event 经实时服务推送到 WS ──
+function onAlarmEvent(d) {
+  alertList.value.unshift({
+    time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+    level: d.alarmLevel || 'GENERAL',
+    sn: d.droneSn || '--',
+    type: d.alarmType || '',
+    desc: d.title || d.description || ''
+  })
+  if (alertList.value.length > 50) alertList.value.pop()
+  alarmCount.value = alertList.value.length
 }
 
 // ── 核心：处理遥测，用唯一 ID 去重计数 ──

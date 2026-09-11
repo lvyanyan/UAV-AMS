@@ -223,15 +223,16 @@ export function useLodDroneRenderer(viewerRef) {
   // ---- LOD 切换 ----
   function applyLod(h) {
     let lv = h > LOD.HIGH_ALT ? 'high' : h > LOD.MID_ALT ? 'mid' : 'low'
-    if (lv === _level) return
+    const changed = lv !== _level
     _level = lv
+    // 三集合互斥：每次都必须执行（首次进入时集合构造默认 show:true）
     try {
       if (_bufCol && !_bufCol.isDestroyed()) _bufCol.show = (lv === 'high')
       if (_ptCol && !_ptCol.isDestroyed()) _ptCol.show = (lv === 'mid')
       if (_bbCol && !_bbCol.isDestroyed()) _bbCol.show = (lv === 'low')
     } catch (e) {}
-    if (lv === 'low') syncBb()
-    console.log(`[LOD] ➡️ ${lv} (${(h/1000).toFixed(1)}km)`)
+    if (changed && lv === 'low') syncBb()
+    if (changed) console.log(`[LOD] ➡️ ${lv} (${(h/1000).toFixed(1)}km)`)
   }
 
   function syncBb() {
