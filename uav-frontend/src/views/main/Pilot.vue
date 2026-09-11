@@ -1,14 +1,10 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">飞手管理</h2>
-        <div class="page-subtitle">执照资质 / 体检记录 / 停飞恢复 · 共 {{ total }} 名飞手</div>
-      </div>
-      <div class="header-actions">
+    <PageHeader title="飞手管理" :subtitle="`执照资质 / 体检记录 / 停飞恢复 · 共 ${total} 名飞手`">
+      <template #actions>
         <el-button type="primary" @click="showCreate">新增飞手</el-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading">
@@ -35,10 +31,7 @@
         </el-table-column>
         <template #empty><el-empty description="暂无飞手数据" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="editing.id?'编辑飞手':'新增飞手'" width="500px">
@@ -91,6 +84,8 @@ import { pilotApi, type UavPilot, type UavPilotMedical } from '@/api/pilot'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 import { fmtDate } from '@/utils/format'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 const list = ref<UavPilot[]>([])
 const loading = ref(false)

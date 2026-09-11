@@ -1,11 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">审计日志</h2>
-        <div class="page-subtitle">关键操作留痕（只读，最近 200 条）· 共 {{ total }} 条</div>
-      </div>
-    </div>
+    <PageHeader title="审计日志" :subtitle="`关键操作留痕（只读，最近 200 条）· 共 ${ total } 条`" />
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading">
         <el-table-column prop="username" label="操作用户" width="130" />
@@ -17,10 +12,7 @@
         </el-table-column>
         <template #empty><el-empty description="暂无审计日志" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" layout="total, prev, pager, next" />
     </el-card>
   </div>
 </template>
@@ -30,6 +22,8 @@ import { ref, onMounted } from 'vue'
 import { systemApi } from '@/api/system'
 import { usePaging } from '@/composables/usePaging'
 import { fmtDateTime } from '@/utils/format'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 const logs = ref<any[]>([])
 const loading = ref(false)

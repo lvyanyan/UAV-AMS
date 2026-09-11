@@ -1,15 +1,11 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">违规处置</h2>
-        <div class="page-subtitle">由危急/严重告警派生的违规台账（只读），处置动作联动告警闭环 · 共 {{ total }} 条</div>
-      </div>
-      <div class="header-actions">
+    <PageHeader title="违规处置" :subtitle="`由危急/严重告警派生的违规台账（只读），处置动作联动告警闭环 · 共 ${total} 条`">
+      <template #actions>
         <el-tag size="large" type="warning">待处理: {{ pendingCount }}</el-tag>
         <el-tag size="large" type="success">已结案: {{ closedCount }}</el-tag>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading">
@@ -41,10 +37,7 @@
         </el-table-column>
         <template #empty><el-empty description="暂无违规记录" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" />
     </el-card>
 
     <el-dialog v-model="detailDialog" title="违规详情/处置" width="500px">
@@ -67,10 +60,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { alarmApi } from '@/api/alarm'
-import { alarmApi } from '@/api/alarm'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 interface Violation {
   id?: number; droneSn: string; violationType: string; violationLevel: string

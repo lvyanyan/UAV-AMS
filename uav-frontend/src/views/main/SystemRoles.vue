@@ -1,11 +1,6 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">角色管理</h2>
-        <div class="page-subtitle">平台角色与权限域（只读）· 共 {{ total }} 个角色</div>
-      </div>
-    </div>
+    <PageHeader title="角色管理" :subtitle="`平台角色与权限域（只读）· 共 ${ total } 个角色`" />
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading">
         <el-table-column prop="roleCode" label="角色编码" width="180">
@@ -15,10 +10,7 @@
         <el-table-column prop="description" label="描述" min-width="220" />
         <template #empty><el-empty description="暂无角色数据" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" layout="total, prev, pager, next" />
     </el-card>
   </div>
 </template>
@@ -28,6 +20,8 @@ import { ref, onMounted } from 'vue'
 import { systemApi, type SysRole } from '@/api/system'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 const roles = ref<SysRole[]>([])
 const loading = ref(false)

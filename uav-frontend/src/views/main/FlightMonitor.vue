@@ -294,21 +294,6 @@ async function loadSuppressRules() {
     suppressRules.value = (await res.json()).data || []
   } catch (e) {}
 }
-const checkedTypes = computed(() => [...new Set(suppressRules.value.filter(r => r.alarmType).map(r => r.alarmType))])
-const checkedLevels = computed(() => [...new Set(suppressRules.value.filter(r => r.alarmLevel).map(r => r.alarmLevel))])
-const snRules = computed(() => suppressRules.value.filter(r => r.droneSn))
-function setTypes(list) {
-  for (const t of list) if (!checkedTypes.value.includes(t)) addSuppressRule({ alarmType: t })
-  for (const t of checkedTypes.value) if (!list.includes(t)) removeSuppressRule({ alarmType: t })
-}
-function setLevels(list) {
-  for (const l of list) if (!checkedLevels.value.includes(l)) addSuppressRule({ alarmLevel: l })
-  for (const l of checkedLevels.value) if (!list.includes(l)) removeSuppressRule({ alarmLevel: l })
-}
-function addSn() {
-  const v = newSn.value.trim()
-  if (v) { addSuppressRule({ droneSn: v }); newSn.value = '' }
-}
 async function addSuppressRule(rule) {
   await fetch('http://localhost:18080/api/alarm/suppress', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

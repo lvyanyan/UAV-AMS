@@ -1,15 +1,11 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">实名登记管理</h2>
-        <div class="page-subtitle">所有人 / 无人机实名登记与审核 · 所有人 {{ owners.length }} 条 · 无人机 {{ drones.length }} 架</div>
-      </div>
-      <div class="header-actions">
+    <PageHeader title="实名登记管理" :subtitle="`所有人 / 无人机实名登记与审核 · 所有人 ${owners.length} 条 · 无人机 ${drones.length} 架`">
+      <template #actions>
         <el-button v-if="tab==='owner'" type="primary" @click="showOwnerDialog">新增所有人</el-button>
         <el-button v-else type="primary" @click="showDroneDialog">新增无人机</el-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-tabs v-model="tab">
@@ -39,8 +35,7 @@
         <template #empty><el-empty description="暂无所有人登记" /></template>
       </el-table>
       <div v-if="tab==='owner'" class="table-footer">
-        <el-pagination v-model:current-page="ownerPage.page.value" v-model:page-size="ownerPage.size.value" :total="ownerPage.total.value"
-          layout="total, prev, pager, next" background />
+        <TablePagination v-model:page="ownerPage.page.value" v-model:size="ownerPage.size.value" :total="ownerPage.total.value" layout="total, prev, pager, next" />
       </div>
 
       <!-- 无人机登记 -->
@@ -68,8 +63,7 @@
         <template #empty><el-empty description="暂无无人机登记" /></template>
       </el-table>
       <div v-if="tab==='drone'" class="table-footer">
-        <el-pagination v-model:current-page="dronePage.page.value" v-model:page-size="dronePage.size.value" :total="dronePage.total.value"
-          layout="total, prev, pager, next" background />
+        <TablePagination v-model:page="dronePage.page.value" v-model:size="dronePage.size.value" :total="dronePage.total.value" layout="total, prev, pager, next" />
       </div>
     </el-card>
 
@@ -115,6 +109,8 @@ import { ElMessage } from 'element-plus'
 import { registryApi, type UavOwner, type UavRegistration } from '@/api/registry'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 const tab = ref('owner')
 const owners = ref<UavOwner[]>([])

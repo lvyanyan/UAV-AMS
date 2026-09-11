@@ -1,14 +1,10 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">空域管理</h2>
-        <div class="page-subtitle">管制区 / 作业区 / 走廊等空域划设与启停管理 · 共 {{ total }} 个</div>
-      </div>
-      <div class="header-actions">
+    <PageHeader title="空域管理" :subtitle="`管制区 / 作业区 / 走廊等空域划设与启停管理 · 共 ${total} 个`">
+      <template #actions>
         <el-button type="primary" @click="showCreate">新增空域</el-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading">
@@ -40,10 +36,7 @@
         </el-table-column>
         <template #empty><el-empty description="暂无空域数据" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" />
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="editing.id ? '编辑空域' : '新增空域'" width="550px">
@@ -94,6 +87,8 @@ import { useDict } from '@/composables/useDict'
 import MapPicker from '@/components/MapPicker.vue'
 import { ref as vueRef } from 'vue'
 import { fmtDateTime as fmtTime } from '@/utils/format'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 const list = ref<Airspace[]>([])
 const loading = ref(false)

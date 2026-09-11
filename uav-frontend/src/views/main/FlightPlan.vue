@@ -1,11 +1,7 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">飞行计划管理</h2>
-        <div class="page-subtitle">三级审批流 · 草稿提交 / 审批通过 / 拒绝 · 共 {{ total }} 个计划</div>
-      </div>
-      <div class="header-actions">
+    <PageHeader title="飞行计划管理" :subtitle="`三级审批流 · 草稿提交 / 审批通过 / 拒绝 · 共 ${total} 个计划`">
+      <template #actions>
         <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width:160px" @change="loadPlans">
           <el-option label="草稿" value="DRAFT" />
           <el-option label="待一级审批" value="PENDING_LEVEL1" />
@@ -16,8 +12,8 @@
           <el-option label="已完成" value="COMPLETED" />
         </el-select>
         <el-button type="primary" @click="showCreateDialog">新建计划</el-button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading" style="width:100%">
@@ -50,10 +46,7 @@
         </el-table-column>
         <template #empty><el-empty description="暂无飞行计划" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" />
     </el-card>
 
     <!-- 新建/编辑对话框 -->
@@ -128,6 +121,8 @@ import { pilotApi } from '@/api/pilot'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 import { routeApi, type UavRoute } from '@/api/route'
 import MapPicker from '@/components/MapPicker.vue'
 import { airspaceApi } from '@/api/airspace'

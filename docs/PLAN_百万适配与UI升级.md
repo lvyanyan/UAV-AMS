@@ -151,6 +151,20 @@
 
 ---
 
+---
+
+## 追加任务七：代码结构组件化（页面重复模式封装）
+
+**实施记录（2026-09-12 完成验收）**
+- **修复违规处置页报错**：迁移时产生的重复 `alarmApi` 导入导致编译失败（页面白屏）。
+- **组件封装**：PageHeader（主色竖条标题+副标题+操作区右对齐）、TablePagination（统一分页布局与页码尺寸）、SuppressDialog（从 FlightMonitor 抽取的告警抑制弹窗，规则增删走事件）。
+- 全部列表页（Airspace/Registry/Pilot/FlightPlan/AlarmCenter/Violation/SystemUsers/Roles/Audit/Dict）统一接入，消除十余处重复的页头/分页模板。
+- 验收：11 个页面全部正常渲染（含 violation 20 行真实数据），e2e 无 pageerror。
+
+**状态**：[x] 已完成（2026-09-12）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。

@@ -1,16 +1,12 @@
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">告警中心</h2>
-        <div class="page-subtitle">实时告警接入与处置闭环 · 近 200 条 · 共危急 {{ criticalCount }} / 严重 {{ seriousCount }} / 一般 {{ generalCount }}</div>
-      </div>
-      <div class="header-actions">
+    <PageHeader title="告警中心" :subtitle="`实时告警接入与处置闭环 · 开启中的告警按时间倒序展示`">
+      <template #actions>
         <el-tag size="large" type="danger">危急: {{ criticalCount }}</el-tag>
         <el-tag size="large" type="warning">严重: {{ seriousCount }}</el-tag>
         <el-tag size="large" type="info">一般: {{ generalCount }}</el-tag>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading" :row-class-name="rowClass">
@@ -36,10 +32,7 @@
         </el-table-column>
         <template #empty><el-empty description="暂无告警" /></template>
       </el-table>
-      <div class="table-footer">
-        <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
-          layout="total, prev, pager, next, sizes" :page-sizes="[10, 20, 50]" background />
-      </div>
+      <TablePagination v-model:page="page" v-model:size="size" :total="total" />
     </el-card>
   </div>
 </template>
@@ -51,6 +44,8 @@ import { alarmApi, type AlarmEvent } from '@/api/alarm'
 import { usePaging } from '@/composables/usePaging'
 import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
+import PageHeader from '@/components/PageHeader.vue'
+import TablePagination from '@/components/TablePagination.vue'
 
 const list = ref<AlarmEvent[]>([])
 const loading = ref(false)
