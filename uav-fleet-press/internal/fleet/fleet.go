@@ -5,7 +5,7 @@ import (
 	"math"
 	"sync"
 
-	"github.com/uav-ams/uav-realtime/internal/movement"
+	"github.com/uav-ams/uav-fleet-press/internal/movement"
 )
 
 // 帧头魔数 "UAVV"（little-endian 0x55534156）

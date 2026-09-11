@@ -26,6 +26,7 @@
 - 前端：`src/worker/fleetWorker.js`（二进制解析+抽稀+ECEF，零拷贝）+ `src/composables/useMillionRenderer.js`（v4 懒加载分帧增长，Point 20万/Billboard 1万）；FlightMonitor 工具栏「🚀 百万模式/返回标准模式」切换，进入时相机拉高 50km 俯瞰，在线数走 `/stats` 轮询（cell 帧的 count 是网格数非机群数）。
 - 自检工具：`uav-realtime/cmd/fleettest`（校验 cell/raw 帧格式 + resize + 8090 JSON 链路）。
 - e2e 验收（playwright，2026-09-11）：10万→100,000 / 50万→500,000 / 100万→1,000,000 在线数精确；**FPS 119-120**（≥30 达标）；低空原始帧模式正常；告警面板全程滚动（27→50 条，切换模式无中断）；切回标准模式恢复 1505 架真实遥测。截图：`%TEMP%\uav_shot\m_100k/500k/1000k/lowalt/back_standard.png`。
+- **服务拆分（2026-09-11 追加）**：百万通道已从 uav-realtime 拆出为独立服务 **uav-fleet-press**（:8091，与 uav-simulator 平级）——四个自包含包（fleet/movement/wshub/press）整体迁移，独立 go.mod + config；uav-realtime 回归纯 JSON 遥测/告警链路。动机：100 万架时 5Hz 全量推进 + 每客户端聚合的 CPU/GC 压力与 MQTT 心跳同进程存在干扰风险（本服务曾有 7b5ae7f 心跳阻塞前科），且 OOM/panic 故障半径不应波及告警链路。端口/协议/前端零改动，回归通过（含 1M 渲染 120FPS、告警面板并行滚动）。
 
 **状态**：[x] 已完成（2026-09-11）
 
@@ -63,7 +64,7 @@
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。
 - Java：JDK `C:\Program Files\Microsoft\jdk-17.0.19.10-hotspot\bin\java.exe`；启动顺序：gateway(18080) → system(8081) → alarm-engine(8095) → 其余按需；jar 锁文件——重启服务前必须先停进程再 build。
-- Go：uav-realtime(8090，**必须在 uav-realtime/ 目录下启动**，config 相对路径)；uav-simulator（MQTT → 172.27.19.223:1883；同 client_id 会互踢，**启动前 taskkill //F //IM uav-simulator.exe 清干净**）。
+- Go：uav-realtime(8090，**必须在 uav-realtime/ 目录下启动**，config 相对路径)；uav-fleet-press(8091 百万级二进制通道，**必须在 uav-fleet-press/ 目录下启动**，独立进程与告警链路隔离)；uav-simulator（MQTT → 172.27.19.223:1883；同 client_id 会互踢，**启动前 taskkill //F //IM uav-simulator.exe 清干净**）。
 - 前端：`cd uav-frontend && npm run dev`（5173；百万 demo 前端在 million-demo/web，也会抢 5173，冲突时后启动者跳 5174）。
 - 登录：admin / admin123（登录接口已验证出 JWT；路由守卫只查 localStorage.token）。
 - e2e 脚本模板：`%TEMP%\uav_shot\`（playwright-core + 系统 Chrome；登录→导航→断言→截图）。

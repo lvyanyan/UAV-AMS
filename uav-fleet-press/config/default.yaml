@@ -1,0 +1,10 @@
+# UAV Fleet Press Service 百万级二进制聚合通道
+# 与 uav-realtime(:8090 JSON 遥测/告警) 完全独立，故障半径互不影响
+press:
+  port: 8091
+  path: /fleet
+  count: 100000      # 初始机群规模，运行时可 GET /resize?count=N 调整
+  freq: 5.0          # 帧率 Hz
+  lat: 39.9042
+  lon: 116.4074
+  radius: 50.0       # 活动半径 km

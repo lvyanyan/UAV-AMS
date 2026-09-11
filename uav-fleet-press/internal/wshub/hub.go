@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/uav-ams/uav-realtime/internal/fleet"
+	"github.com/uav-ams/uav-fleet-press/internal/fleet"
 
 	"github.com/gorilla/websocket"
 )

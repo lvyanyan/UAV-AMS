@@ -1,4 +1,4 @@
-package fleetws
+package press
 
 import (
 	"context"
@@ -13,9 +13,9 @@ import (
 
 	"github.com/gorilla/websocket"
 
-	"github.com/uav-ams/uav-realtime/internal/config"
-	"github.com/uav-ams/uav-realtime/internal/fleet"
-	"github.com/uav-ams/uav-realtime/internal/wshub"
+	"github.com/uav-ams/uav-fleet-press/internal/config"
+	"github.com/uav-ams/uav-fleet-press/internal/fleet"
+	"github.com/uav-ams/uav-fleet-press/internal/wshub"
 )
 
 // Server 百万级二进制聚合通道（端口 8091）。
@@ -23,7 +23,7 @@ import (
 // 按客户端上报的相机视野分流：高空网格聚合 / 低空视野裁剪 / full 全量。
 // 与 8090 JSON 遥测链路完全隔离，互不影响。
 type Server struct {
-	cfg   config.FleetConfig
+	cfg   config.PressConfig
 	hub   *wshub.Hub
 	fleet atomic.Pointer[fleet.Fleet]
 
@@ -35,7 +35,7 @@ type Server struct {
 // 默认 viewport（client 还没上报时用）：高空全局聚合
 var defaultVP = fleet.Viewport{Height: 50000, MinLat: -90, MaxLat: 90, MinLon: -180, MaxLon: 180}
 
-func NewServer(cfg config.FleetConfig) *Server {
+func NewServer(cfg config.PressConfig) *Server {
 	return &Server{
 		cfg: cfg,
 		hub: wshub.NewHub(),
@@ -62,10 +62,10 @@ func (s *Server) Start(ctx context.Context) {
 
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
 	go func() {
-		log.Printf("[Fleet] 百万级二进制通道监听 %s%s （%d 架 @ %.0fHz，中心 %.4f,%.4f 半径 %.0fkm）",
+		log.Printf("[Press] 百万级二进制通道监听 %s%s （%d 架 @ %.0fHz，中心 %.4f,%.4f 半径 %.0fkm）",
 			addr, s.cfg.Path, s.cfg.Count, s.cfg.Freq, s.cfg.Lat, s.cfg.Lon, s.cfg.Radius)
 		if err := http.ListenAndServe(addr, handler); err != nil {
-			log.Printf("[Fleet] Server error: %v", err)
+			log.Printf("[Press] Server error: %v", err)
 		}
 	}()
 
@@ -81,7 +81,7 @@ func (s *Server) handleConnection(w http.ResponseWriter, r *http.Request) {
 	s.hub.Register(client)
 	go wshub.WritePump(client, s.bufPool)
 	go wshub.ReadPump(client, func() { s.hub.Unregister(client); conn.Close() })
-	log.Printf("[Fleet] WS 连接接入，当前客户端=%d", s.hub.Count())
+	log.Printf("[Press] WS 连接接入，当前客户端=%d", s.hub.Count())
 }
 
 // handleResize 运行时调整机群规模：GET /resize?count=500000
@@ -92,7 +92,7 @@ func (s *Server) handleResize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.fleet.Store(fleet.New(n, s.cfg.Lat, s.cfg.Lon, s.cfg.Radius))
-	log.Printf("[Fleet] 机群重建为 %d 架", n)
+	log.Printf("[Press] 机群重建为 %d 架", n)
 	w.Write([]byte("ok"))
 }
 
