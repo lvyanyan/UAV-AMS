@@ -135,7 +135,9 @@ docker exec uav-flink-jobmanager flink run -c com.uav.flinkcep.CepAlarmJob /opt/
 
 ## 界面截图
 
-![飞行监控三维大屏 · 万架级实时渲染](docs/screenshots/dashboard.png)
+![飞行监控三维大屏 · 万架级实时渲染（高德卫星底图）](docs/screenshots/dashboard-amap.png)
+
+![百万实体压测 · 100万架抽稀至20万点渲染（rAF 100+ FPS）](docs/screenshots/million-100wan-decimate-20wan.jpg)
 
 ![飞行计划多级审批（Flowable BPMN）](docs/screenshots/flight-plan-approval.png)
 
