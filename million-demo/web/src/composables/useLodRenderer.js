@@ -84,9 +84,10 @@ export function useLodRenderer(viewerRef) {
   }
 
   // 帧类型即 LOD：cell 帧→只画 Point，raw 帧→只画 Billboard（互斥）
+  // raw 数量超过 billboard 容量时也走 Point（全量模式抽稀后的 20 万点）
   function render() {
     if (!_ready || !_count || !_pos) return
-    if (_isCell) {
+    if (_isCell || _count > MAX_BB) {
       _bbCol.show = false
       hideAllBb()
       renderPoints()
@@ -223,9 +224,10 @@ export function useLodRenderer(viewerRef) {
 
   function updateBatch(pos, meta, ll, count, isCell) {
     if (!_ready || count <= 0 || !pos || !meta || !ll) return
-    _pos = pos
-    _meta = meta
-    _ll = ll
+    // Worker 传回的是 Transferable ArrayBuffer，按位包一层视图
+    _pos = pos instanceof Float64Array ? pos : new Float64Array(pos)
+    _meta = meta instanceof Float32Array ? meta : new Float32Array(meta)
+    _ll = ll instanceof Float32Array ? ll : new Float32Array(ll)
     _count = count
     _isCell = !!isCell
     render()

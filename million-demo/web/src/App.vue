@@ -77,6 +77,7 @@ function connect() {
     connected.value = true
     mode.value = 'live'
     reconnectTimer = 0
+    updateViewport()
   }
   ws.onclose = () => {
     connected.value = false
@@ -90,7 +91,7 @@ function connect() {
       return
     }
     workerBusy = true
-    worker.postMessage({ data: e.data, viewport: _lastVp }, [e.data])
+    worker.postMessage(e.data, [e.data])
   }
 }
 
@@ -112,8 +113,21 @@ function updateViewport() {
   const v = viewerRef.value
   if (!v) return
   const cam = v.camera
-  _lastVp = `{"x":${cam.position.x.toFixed(1)},"y":${cam.position.y.toFixed(1)},"z":${cam.position.z.toFixed(1)},"h":${cam.heading.toFixed(4)},"p":${cam.pitch.toFixed(4)},"r":${cam.roll.toFixed(4)}}`
-  _lastVpSend = Date.now()
+  const rect = cam.computeViewRectangle(v.scene.globe.ellipsoid)
+  if (!rect) return
+  // 服务端 Viewport 协议：{h, minLat, maxLat, minLon, maxLon}
+  _lastVp = JSON.stringify({
+    h: Math.round(cam.positionCartographic.height),
+    minLat: +Cesium.Math.toDegrees(rect.south).toFixed(5),
+    maxLat: +Cesium.Math.toDegrees(rect.north).toFixed(5),
+    minLon: +Cesium.Math.toDegrees(rect.west).toFixed(5),
+    maxLon: +Cesium.Math.toDegrees(rect.east).toFixed(5)
+  })
+  const now = Date.now()
+  if (ws && ws.readyState === WebSocket.OPEN && now - _lastVpSend > 200) {
+    _lastVpSend = now
+    ws.send(_lastVp)
+  }
 }
 
 // ── 主渲染循环 ──
@@ -132,11 +146,13 @@ function renderLoop() {
   }
 
   if (connected.value && pending) {
-    // pending 中有 Worker 解析好的最新一帧
+    // pending 中有 Worker 解析好的最新一帧（v5: pos/meta/ll + isCell 双协议）
     const data = pending
     pending = null
-    droneCount.value = data.drones ? data.drones.length : 0
-    renderer.update(data)
+    droneCount.value = data.serverCount || data.count || 0
+    drawnCount.value = data.count || 0
+    mode.value = data.isCell ? '聚合' : '原始'
+    renderer.updateBatch(data.pos, data.meta, data.ll, data.count, data.isCell)
   }
 
   // canvas 尺寸自适应（仅尺寸变化时，减少无效重绘）
@@ -197,6 +213,7 @@ onMounted(async () => {
   }
 
   renderer.init()
+  startWorker()
   updateViewport()
   _camListener = v.camera.changed.addEventListener(() => updateViewport())
   connect()
