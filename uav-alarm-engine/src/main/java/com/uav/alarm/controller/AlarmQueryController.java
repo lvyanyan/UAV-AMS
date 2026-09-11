@@ -20,10 +20,14 @@ public class AlarmQueryController {
 
     private final JdbcTemplate jdbc;
     private final com.uav.alarm.core.AlarmOpenStateStore openStore;
+    private final com.uav.alarm.core.AlarmSuppressStore suppressStore;
 
-    public AlarmQueryController(JdbcTemplate jdbc, com.uav.alarm.core.AlarmOpenStateStore openStore) {
+    public AlarmQueryController(JdbcTemplate jdbc,
+                                com.uav.alarm.core.AlarmOpenStateStore openStore,
+                                com.uav.alarm.core.AlarmSuppressStore suppressStore) {
         this.jdbc = jdbc;
         this.openStore = openStore;
+        this.suppressStore = suppressStore;
     }
 
     private static final String COLS = "id, drone_sn, alarm_type, alarm_level, alarm_content, lat, lng, alt, handled, status, create_time, closed_time";
@@ -72,6 +76,55 @@ public class AlarmQueryController {
         row.put("status", "CLOSED");
         return R.ok(row);
     }
+
+    /** 活跃告警全集（供监控大屏轮询着色；上限 2000） */
+    @GetMapping("/active")
+    public R<List<Map<String, Object>>> active() {
+        return R.ok(query("select " + COLS + " from alarm_record where status = 'OPEN' order by id desc limit 2000"));
+    }
+
+    // ===== 告警抑制规则（服务端记录用户选择，生成侧过滤）=====
+    @GetMapping("/suppress")
+    public R<List<Map<String, Object>>> suppressList(@RequestParam String userId) {
+        List<Map<String, Object>> out = new ArrayList<>();
+        jdbc.query("select id, user_id, alarm_type, alarm_level, drone_sn, create_time from alarm_suppress "
+                + "where user_id = ? order by id", rs -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", rs.getLong("id"));
+            m.put("userId", rs.getString("user_id"));
+            m.put("alarmType", rs.getString("alarm_type"));
+            m.put("alarmLevel", rs.getString("alarm_level"));
+            m.put("droneSn", rs.getString("drone_sn"));
+            m.put("createTime", rs.getTimestamp("create_time"));
+            out.add(m);
+        }, userId);
+        return R.ok(out);
+    }
+
+    /** 新增抑制规则：alarm_type / alarm_level / drone_sn 至少一个 */
+    @PostMapping("/suppress")
+    public R<String> suppressAdd(@RequestBody Map<String, Object> body) {
+        String userId = str(body.get("userId"));
+        String type = str(body.get("alarmType"));
+        String level = str(body.get("alarmLevel"));
+        String sn = str(body.get("droneSn"));
+        if (userId == null || (type == null && level == null && sn == null)) {
+            return R.fail("userId 与至少一个抑制条件必填");
+        }
+        jdbc.update("insert into alarm_suppress (user_id, alarm_type, alarm_level, drone_sn) values (?,?,?,?)",
+                userId, type, level, sn);
+        suppressStore.reload();
+        return R.ok("ok");
+    }
+
+    @DeleteMapping("/suppress/{id}")
+    public R<String> suppressDelete(@PathVariable long id, @RequestParam String userId) {
+        jdbc.update("delete from alarm_suppress where id = ? and user_id = ?", id, userId);
+        suppressStore.reload();
+        return R.ok("ok");
+    }
+
+    private static String str(Object o) { return o == null ? null : String.valueOf(o); }
 
     // ===== 违规台账（自 uav-system 迁入：违规属告警/监管域）=====
     /** 只读：由开启中的危急/严重告警派生，OPEN→待处理、CLOSED→已结案 */

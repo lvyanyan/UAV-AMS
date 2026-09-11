@@ -17,8 +17,9 @@
       </div>
       <button @click="toggleAirspace">{{ showAirspace ? '隐藏' : '显示' }}空域</button>
       <button @click="toggleFps">FPS</button>
-      <button :class="{ active: activePanel === 'layers' }" @click="togglePanel('layers')">图层</button>
-      <button :class="{ active: activePanel === 'replay' }" @click="togglePanel('replay')">重放</button>
+      <button :class="{ active: activePanel === '空域' }" @click="togglePanel('空域')">空域</button>
+      <button :class="{ active: activePanel === '航路' }" @click="togglePanel('航路')">航路</button>
+      <button :class="{ active: activePanel === '起降场' }" @click="togglePanel('起降场')">起降场</button>
       <button :class="{ active: activePanel === 'suppress' }" @click="togglePanel('suppress')">抑制</button>
     </div>
     <!-- 图层 / 消息重放 / 告警抑制 面板 -->
@@ -28,9 +29,15 @@
         <el-icon class="sp-close" @click="activePanel = null"><Close /></el-icon>
       </div>
       <div class="sp-body">
-        <template v-if="activePanel === 'layers'">
+        <template v-if="['空域', '航路', '起降场'].includes(activePanel)">
+          <el-input v-model="layerFilter" placeholder="按名称过滤" size="small" clearable style="margin-bottom:8px" />
           <div v-for="g in layerGroups" :key="g.name" class="layer-group">
-            <div class="lg-title">{{ g.name }} <span class="lg-count">{{ g.items.length }}</span></div>
+            <div class="lg-title">
+              <label class="layer-item" style="padding:0 2px">
+                <input type="checkbox" :checked="groupAllChecked(g)" @change="toggleGroup(g, $event.target.checked)" />
+                <b>{{ g.name }}</b>
+              </label>
+            </div>
             <label v-for="it in g.items" :key="it.key" class="layer-item">
               <input type="checkbox" v-model="it.visible" @change="renderOverlays" />
               <span class="layer-name" :class="{ nofly: it.kind === 'no_fly' }">{{ it.label }}</span>
@@ -38,50 +45,16 @@
           </div>
           <div v-if="!layerGroups.length" class="empty-hint">暂无空域/航路/起降场数据</div>
         </template>
-        <template v-else-if="activePanel === 'replay'">
-          <div class="replay-stat">录制窗口：最近 10 分钟 · 已缓存 <b>{{ replayBuffered }}</b> 条遥测</div>
-          <template v-if="!replay.active">
-            <el-button type="primary" style="width:100%" :disabled="replayBuffered < 2" @click="startReplay">开始重放</el-button>
-            <div v-if="replayBuffered < 2" class="empty-hint">缓存不足，等待遥测积累…</div>
-          </template>
-          <template v-else>
-            <el-slider v-model="replay.progress" :min="0" :max="100" :step="0.1" @input="seekReplay" />
-            <div class="replay-btns">
-              <el-button size="small" @click="replay.playing ? pauseReplay() : resumeReplay()">{{ replay.playing ? '暂停' : '继续' }}</el-button>
-              <el-select :model-value="replay.speed" size="small" style="width:90px" @update:model-value="changeSpeed">
-                <el-option label="1x" :value="1" /><el-option label="4x" :value="4" />
-                <el-option label="16x" :value="16" /><el-option label="64x" :value="64" />
-              </el-select>
-              <el-button size="small" type="danger" @click="stopReplay">停止</el-button>
-            </div>
-            <div class="replay-stat">重放中 {{ replay.progress.toFixed(0) }}% · 已应用 {{ replay.idx }}/{{ replayBuffered }} 条</div>
-          </template>
-          <div class="empty-hint">重放期间实时遥测挂起，停止后恢复；仅标准模式可用</div>
-        </template>
         <template v-else-if="activePanel === 'suppress'">
-          <div class="suppress-form">
-            <el-select v-model="newRule.type" placeholder="按告警类型抑制" clearable size="small" style="width:100%;margin-bottom:6px">
-              <el-option v-for="d in alarmTypeItems" :key="d.value" :label="d.label" :value="d.value" />
-            </el-select>
-            <el-select v-model="newRule.level" placeholder="按级别抑制" clearable size="small" style="width:100%;margin-bottom:6px">
-              <el-option v-for="d in alarmLevelItems" :key="d.value" :label="d.label" :value="d.value" />
-            </el-select>
-            <el-input v-model="newRule.sn" placeholder="按无人机SN抑制（可选）" size="small" style="margin-bottom:6px" />
-            <el-button type="primary" size="small" style="width:100%" @click="addSuppressRule">添加抑制规则</el-button>
+          <div class="empty-hint">
+            已配置规则：类型 {{ suppressCount.types }} · 级别 {{ suppressCount.levels }} · SN {{ suppressCount.sns }}
           </div>
-          <div class="suppress-list">
-            <div v-for="(r, i) in suppressRules" :key="i" class="suppress-item">
-              <span>{{ ruleText(r) }}</span>
-              <el-icon class="sp-close" @click="suppressRules.splice(i, 1); saveRules()"><Close /></el-icon>
-            </div>
-            <div v-if="!suppressRules.length" class="empty-hint">暂无抑制规则</div>
-            <div v-if="suppressedCount" class="empty-hint">本次会话已抑制 {{ suppressedCount }} 条告警</div>
-          </div>
+          <el-button type="primary" size="small" style="width:100%;margin-top:8px" @click="suppressOpen = true">配置抑制规则</el-button>
         </template>
       </div>
     </div>
     <div v-if="showFps" class="fps-overlay">{{ fpsText }}</div>
-    <div v-if="millionDropped > 0" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker/渲染跟不上）</div>
+    <div v-if="showDropped" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker 解析积压，已自动只处理最新帧）</div>
     <AlertPanel :alerts="alertList" />
     <!-- 百万模式：点击聚合点/原始点出现的简化标牌 -->
     <div v-if="millionLabel.visible" class="drone-label" :style="{ left: millionLabel.x + 'px', top: millionLabel.y + 'px' }" @click.stop>
@@ -100,11 +73,40 @@
       <div class="dl-row"><span class="dl-k">任务性质</span><span>{{ label.purpose }}</span></div>
       <div class="dl-row"><span class="dl-k">运营主体</span><span>{{ label.operator }}</span></div>
     </div>
+      <!-- 告警抑制配置（弹出面板） -->
+    <el-dialog v-model="suppressOpen" title="告警抑制规则" width="560px" @open="loadSuppressRules">
+      <div class="suppress-group">
+        <div class="suppress-group-title">按告警类型（勾选即生效）</div>
+        <el-checkbox-group :model-value="checkedTypes" @update:model-value="setTypes">
+          <el-checkbox-button v-for="d in alarmTypeItems" :key="d.value" :value="d.value">{{ d.label }}</el-checkbox-button>
+        </el-checkbox-group>
+      </div>
+      <div class="suppress-group">
+        <div class="suppress-group-title">按级别</div>
+        <el-checkbox-group :model-value="checkedLevels" @update:model-value="setLevels">
+          <el-checkbox-button v-for="d in alarmLevelItems" :key="d.value" :value="d.value">{{ d.label }}</el-checkbox-button>
+        </el-checkbox-group>
+      </div>
+      <div class="suppress-group">
+        <div class="suppress-group-title">按无人机 SN</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <el-input v-model="newSn" size="small" placeholder="输入SN后回车添加" @keyup.enter="addSn" />
+          <el-button size="small" @click="addSn">添加</el-button>
+        </div>
+        <div class="sn-tags">
+          <el-tag v-for="r in snRules" :key="r.id" closable size="small" style="margin:0 6px 6px 0" @close="removeSuppressRule({ droneSn: r.droneSn })">{{ r.droneSn }}</el-tag>
+          <span v-if="!snRules.length" style="color:var(--el-text-color-secondary);font-size:12px">未指定</span>
+        </div>
+      </div>
+      <div style="color:var(--el-text-color-secondary);font-size:12px">
+        规则由服务端记录并在告警生成侧过滤：命中的告警不再推送、不再落库。
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, shallowRef, computed, onMounted, onUnmounted } from 'vue'
+import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue'
 import * as Cesium from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { CESIUM_CONFIG } from '@/config/cesiumConfig.js'
@@ -113,6 +115,7 @@ import { useMillionRenderer } from '@/composables/useMillionRenderer.js'
 import AlertPanel from '@/components/AlertPanel.vue'
 import { ElMessage } from 'element-plus'
 import { useDict } from '@/composables/useDict'
+import { useUserStore } from '@/stores/user'
 import { airspaceApi } from '@/api/airspace'
 import { routeApi } from '@/api/route'
 import { airportApi } from '@/api/airport'
@@ -140,14 +143,17 @@ const millionFrameMode = ref('连接中')   // 聚合 | 原始 | 连接中 | 断
 const millionDropped = ref(0)
 const fleetScale = ref(0)               // 当前机群规模（/stats 轮询回填，命中 SCALES 才亮）
 const millionLabel = ref({ visible: false, x: 0, y: 0, index: -1, lon: '--', lat: '--', alt: '--', alertClass: 'NONE', alertText: '无' })
+const showDropped = ref(false)
+let dropHideTimer = null
 
 // ── 图层 / 消息重放 / 告警抑制 ──
 const { items: alarmTypeItems, label: typeLabel } = useDict('alarm_type')
 const { items: alarmLevelItems, label: levelLabel } = useDict('alarm_level')
 const { items: directionItems, label: directionLabel } = useDict('route_direction')
 
+const userStore = useUserStore()
 const activePanel = ref(null)
-const panelTitle = computed(() => ({ layers: '图层选择', replay: '消息重放', suppress: '告警抑制' }[activePanel.value] || ''))
+const panelTitle = computed(() => ({ '空域': '空域图层', '航路': '航路图层', '起降场': '起降场图层', suppress: '告警抑制' }[activePanel.value] || ''))
 function togglePanel(name) { activePanel.value = activePanel.value === name ? null : name }
 
 const airspaceList = ref([])
@@ -155,14 +161,14 @@ const routeList = ref([])
 const airportList = ref([])
 const layerItems = ref([])   // { group, key, id, label, kind, visible, data }
 
+const layerFilter = ref('')
 const layerGroups = computed(() => {
-  const groups = []
-  for (const g of ['空域', '航路', '起降场']) {
-    const items = layerItems.value.filter(i => i.group === g)
-    if (items.length) groups.push({ name: g + '（' + items.length + '）', items })
-  }
-  return groups
+  if (!['空域', '航路', '起降场'].includes(activePanel.value)) return []
+  const items = layerItems.value.filter(i => i.group === activePanel.value)
+  return items.length ? [{ name: activePanel.value, items }] : []
 })
+function groupAllChecked(g) { return g.items.every(i => i.visible) }
+function toggleGroup(g, checked) { g.items.forEach(i => { i.visible = checked }); renderOverlays() }
 
 let overlayEntities = []
 function renderOverlays() {
@@ -238,106 +244,91 @@ async function loadLayers() {
   } catch (e) { console.warn('[FlightMonitor] 图层数据加载失败', e) }
 }
 
-// ── 消息重放 ──
-const REPLAY_WINDOW_MS = 10 * 60 * 1000
-let telemetryLog = []
-let replayTimer = null
-let replayStartReal = 0
-let replayStartVirtual = 0
-let pauseElapsed = 0
-const replay = ref({ active: false, playing: false, progress: 0, speed: 16 })
-const replayBuffered = ref(0)
-
-function recordTelemetry(data) {
-  const now = Date.now()
-  telemetryLog.push({ t: now, data })
-  while (telemetryLog.length && now - telemetryLog[0].t > REPLAY_WINDOW_MS) telemetryLog.shift()
-  replayBuffered.value = telemetryLog.length
+// ── 在飞快照：新连接立即获得当前在飞无人机态势 ──
+async function loadSnapshot() {
+  try {
+    const res = await fetch('http://localhost:8090/snapshot')
+    const json = await res.json()
+    let n = 0
+    for (const d of json.drones || []) {
+      applyData({ device_sn: d.sn, position: { lat: d.lat, lon: d.lon, alt_m: d.alt, heading: d.heading } }, d.sn)
+      n++
+    }
+    console.log('[FlightMonitor] 快照接入在飞无人机', n)
+  } catch (e) { console.warn('快照加载失败', e) }
 }
 
-function startReplay() {
-  if (telemetryLog.length < 2) return
-  replay.value.idx = 0
-  pauseElapsed = 0
-  replay.value.active = true
-  replay.value.playing = true
-  replayStartReal = performance.now()
-  replayStartVirtual = telemetryLog[0].t
-  replayTimer = setInterval(tickReplay, 60)
-}
-function tickReplay() {
-  if (!replay.value.playing) return
-  const virtual = replayStartVirtual + pauseElapsed + (performance.now() - replayStartReal) * replay.value.speed
-  const span = telemetryLog.length ? telemetryLog[telemetryLog.length - 1].t - telemetryLog[0].t : 1
-  while (replay.value.idx < telemetryLog.length && telemetryLog[replay.value.idx].t <= virtual) {
-    const msg = telemetryLog[replay.value.idx]
-    applyData(msg.data, getDroneId(msg.data))
-    replay.value.idx++
-  }
-  replay.value.progress = Math.min(100, ((virtual - telemetryLog[0].t) / span) * 100)
-  if (replay.value.idx >= telemetryLog.length) { replay.value.progress = 100; pauseReplay() }
-}
-function pauseReplay() {
-  replay.value.playing = false
-  pauseElapsed += (performance.now() - replayStartReal) * replay.value.speed
-  replayStartReal = performance.now()
-}
-function resumeReplay() {
-  replay.value.playing = true
-  replayStartReal = performance.now()
-}
-function changeSpeed(v) {
-  if (replay.value.active && replay.value.playing) {
-    pauseElapsed += (performance.now() - replayStartReal) * replay.value.speed
-    replayStartReal = performance.now()
-  }
-  replay.value.speed = v
-}
-function seekReplay() {
-  const span = telemetryLog.length ? telemetryLog[telemetryLog.length - 1].t - telemetryLog[0].t : 1
-  const target = telemetryLog[0].t + span * (replay.value.progress / 100)
-  replay.value.idx = 0
-  while (replay.value.idx < telemetryLog.length && telemetryLog[replay.value.idx].t <= target) {
-    applyData(telemetryLog[replay.value.idx].data, getDroneId(telemetryLog[replay.value.idx].data))
-    replay.value.idx++
-  }
-  replayStartVirtual = target
-  replayStartReal = performance.now()
-}
-function stopReplay() {
-  if (replayTimer) { clearInterval(replayTimer); replayTimer = null }
-  replay.value.active = false
-  replay.value.playing = false
-  replay.value.progress = 0
-  replay.value.idx = 0
+// ── 告警重放（初始化一次性）：接口拉取在飞无人机的活跃告警，驱动告警点着色；
+// ── 此后实时告警由 WS 推送增量更新（开关语义下事件量很小）──
+async function replayActiveAlarms() {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:18080/api/alarm/active', { headers: { Authorization: 'Bearer ' + token } })
+    const json = await res.json()
+    for (const a of json.data || []) {
+      const sn = a.droneSn
+      const meta = droneMeta.get(sn) || {}
+      meta.alertLevel = a.alarmLevel
+      droneMeta.set(sn, meta)
+      const slot = droneMap.get(sn)
+      if (slot !== undefined) renderer.setAlertLevel(slot, a.alarmLevel)
+    }
+  } catch (e) {}
 }
 
-// ── 告警抑制 ──
-const suppressRules = ref(JSON.parse(localStorage.getItem('fm_suppress_rules') || '[]'))
-const suppressedCount = ref(0)
-const newRule = ref({ type: '', level: '', sn: '' })
-function saveRules() { localStorage.setItem('fm_suppress_rules', JSON.stringify(suppressRules.value)) }
-function addSuppressRule() {
-  const r = { type: newRule.value.type || '', level: newRule.value.level || '', sn: (newRule.value.sn || '').trim() }
-  if (!r.type && !r.level && !r.sn) { ElMessage.warning('至少填写一个抑制条件'); return }
-  suppressRules.value.push(r)
-  saveRules()
-  newRule.value = { type: '', level: '', sn: '' }
+
+// ── 告警抑制（服务端记录规则，生成侧过滤；前端只负责配置界面）──
+const suppressOpen = ref(false)
+const suppressRules = ref([])
+const newSn = ref('')
+const suppressCount = computed(() => ({
+  types: new Set(suppressRules.value.filter(r => r.alarmType).map(r => r.alarmType)).size,
+  levels: new Set(suppressRules.value.filter(r => r.alarmLevel).map(r => r.alarmLevel)).size,
+  sns: new Set(suppressRules.value.filter(r => r.droneSn).map(r => r.droneSn)).size,
+}))
+async function loadSuppressRules() {
+  try {
+    const res = await fetch('http://localhost:18080/api/alarm/suppress?userId=' + encodeURIComponent(userStore.username))
+    suppressRules.value = (await res.json()).data || []
+  } catch (e) {}
 }
-function ruleText(r) {
-  const parts = []
-  if (r.type) parts.push('类型=' + typeLabel(r.type))
-  if (r.level) parts.push('级别=' + levelLabel(r.level))
-  if (r.sn) parts.push('SN=' + r.sn)
-  return '抑制 ' + parts.join(' 且 ')
+const checkedTypes = computed(() => [...new Set(suppressRules.value.filter(r => r.alarmType).map(r => r.alarmType))])
+const checkedLevels = computed(() => [...new Set(suppressRules.value.filter(r => r.alarmLevel).map(r => r.alarmLevel))])
+const snRules = computed(() => suppressRules.value.filter(r => r.droneSn))
+function setTypes(list) {
+  for (const t of list) if (!checkedTypes.value.includes(t)) addSuppressRule({ alarmType: t })
+  for (const t of checkedTypes.value) if (!list.includes(t)) removeSuppressRule({ alarmType: t })
 }
-function isSuppressed(d) {
-  return suppressRules.value.some(r =>
-    (!r.type || d.alarmType === r.type) &&
-    (!r.level || d.alarmLevel === r.level) &&
-    (!r.sn || (d.droneSn || '') === r.sn) &&
-    (r.type || r.level || r.sn))
+function setLevels(list) {
+  for (const l of list) if (!checkedLevels.value.includes(l)) addSuppressRule({ alarmLevel: l })
+  for (const l of checkedLevels.value) if (!list.includes(l)) removeSuppressRule({ alarmLevel: l })
 }
+function addSn() {
+  const v = newSn.value.trim()
+  if (v) { addSuppressRule({ droneSn: v }); newSn.value = '' }
+}
+async function addSuppressRule(rule) {
+  await fetch('http://localhost:18080/api/alarm/suppress', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: userStore.username, ...rule })
+  })
+  loadSuppressRules()
+}
+async function removeSuppressRule(rule) {
+  const hit = suppressRules.value.find(r =>
+    (rule.alarmType && r.alarmType === rule.alarmType) ||
+    (rule.alarmLevel && r.alarmLevel === rule.alarmLevel) ||
+    (rule.droneSn && r.droneSn === rule.droneSn))
+  if (hit) await fetch('http://localhost:18080/api/alarm/suppress/' + hit.id + '?userId=' + encodeURIComponent(userStore.username), { method: 'DELETE' })
+  loadSuppressRules()
+}
+
+// 丢帧提示：少于 5 帧不打扰，展示 3 秒后自动隐藏
+watch(millionDropped, (v) => {
+  showDropped.value = v >= 5
+  if (dropHideTimer) clearTimeout(dropHideTimer)
+  if (showDropped.value) dropHideTimer = setTimeout(() => { showDropped.value = false }, 3000)
+})
 
 let viewer = null
 let ws = null
@@ -539,7 +530,6 @@ async function enterMillionMode() {
   droneMap.clear(); slotToSn = []; nextSlot = 0
   renderer.destroy()
   closeLabel()
-  stopReplay()
   activePanel.value = null
 
   // 2) 起百万链路：Worker + WS + 视锥上报 + 在线数轮询
@@ -618,8 +608,6 @@ function closeMillionLabel() {
 
 // ── 告警事件：uav.alarm.event 经实时服务推送到 WS ──
 function onAlarmEvent(d) {
-  // 告警抑制：命中规则的告警不进入面板与计数
-  if (isSuppressed(d)) { suppressedCount.value++; return }
   const sn = d.droneSn || '--'
   const meta = droneMeta.get(sn) || {}
   meta.alertLevel = d.alarmLevel || 'GENERAL'
@@ -707,8 +695,6 @@ function onTelemetry(data) {
     // 百万模式：JSON 遥测不喂渲染器也不缓冲（防内存积压），WS 保持连接只为告警事件
     if (mode.value === 'million') return
     // 消息重放：滚动录制最近 10 分钟遥测；重放期间挂起实时渲染
-    recordTelemetry(data)
-    if (replay.value.active) return
     const id = getDroneId(data)
     if (!id) return
 
@@ -863,12 +849,14 @@ onMounted(() => {
   viewer.screenSpaceEventHandler.setInputAction(onLeftClick, Cesium.ScreenSpaceEventType.LEFT_CLICK)
   statsTimer = setInterval(updateStats, 2000)
   loadLayers()
+  loadSnapshot()
+  replayActiveAlarms()
+  loadSuppressRules()
   mainLoop()
 })
 
 onUnmounted(() => {
   cancelAnimationFrame(rafId)
-  stopReplay()
   clearTimeout(wsReconnectTimer); clearTimeout(initTimer); clearInterval(statsTimer)
   clearTimeout(fleetWsReconnectTimer)
   if (camListener) { camListener(); camListener = null }
@@ -916,6 +904,8 @@ onUnmounted(() => {
 .replay-stat { font-size: 12px; color: #8fa2ba; margin-bottom: 8px; }
 .replay-btns { display: flex; gap: 6px; margin: 8px 0; }
 .suppress-form { margin-bottom: 10px; }
+.suppress-group { margin-bottom: 16px; }
+.suppress-group-title { font-size: 13px; color: var(--el-text-color-secondary); margin-bottom: 8px; }
 .suppress-item { display: flex; justify-content: space-between; align-items: center;
   font-size: 12px; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px;
   background: rgba(255,255,255,.04); }

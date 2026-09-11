@@ -14,6 +14,7 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: 'dashboard', name: 'Dashboard', component: () => import('@/views/main/Dashboard.vue'), meta: { title: '仪表盘' } },
       { path: 'flight-monitor', name: 'FlightMonitor', component: () => import('@/views/main/FlightMonitor.vue'), meta: { title: '飞行监控' } },
+      { path: 'message-replay', name: 'MessageReplay', component: () => import('@/views/main/MessageReplay.vue'), meta: { title: '消息重放' } },
       { path: 'flight-plan', name: 'FlightPlan', component: () => import('@/views/main/FlightPlan.vue'), meta: { title: '飞行计划' } },
       { path: 'airspace', name: 'Airspace', component: () => import('@/views/main/Airspace.vue'), meta: { title: '空域管理' } },
       { path: 'air-route', name: 'AirRoute', component: () => import('@/views/main/AirRoute.vue'), meta: { title: '航路管理' } },

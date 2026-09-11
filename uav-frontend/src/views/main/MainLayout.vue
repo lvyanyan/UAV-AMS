@@ -5,6 +5,7 @@
       <el-menu :default-active="currentRoute" router background-color="transparent" text-color="#8fa2ba" active-text-color="#66b1ff" style="border-right:none" class="side-menu">
         <el-menu-item index="/dashboard"><el-icon><Odometer /></el-icon><span>仪表盘</span></el-menu-item>
         <el-menu-item index="/flight-monitor"><el-icon><Monitor /></el-icon><span>飞行监控</span></el-menu-item>
+        <el-menu-item index="/message-replay"><el-icon><VideoPlay /></el-icon><span>消息重放</span></el-menu-item>
         <el-menu-item index="/flight-plan"><el-icon><Document /></el-icon><span>飞行计划</span></el-menu-item>
         <el-menu-item index="/airspace"><el-icon><MapLocation /></el-icon><span>空域管理</span></el-menu-item>
         <el-menu-item index="/air-route"><el-icon><Guide /></el-icon><span>航路管理</span></el-menu-item>

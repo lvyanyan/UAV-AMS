@@ -225,6 +225,25 @@ export function useLodDroneRenderer(viewerRef) {
     } catch (e) {}
   }
 
+  /** 外部按 SN 轮询活跃告警后，直接刷新某槽位的告警等级与配色 */
+  function setAlertLevel(idx, level) {
+    if (!_ready || idx === undefined || idx >= _count) return
+    _alvl[idx] = level || 'NORMAL'
+    try {
+      if (_level === 'mid') {
+        const p = getPt(idx)
+        if (p) p.color = alertPointColor(_alvl[idx])
+      } else if (_level === 'low') {
+        const b = getBb(idx)
+        if (!b) return
+        let img = _imgN
+        if (['MAJOR', 'CRITICAL', 'EMERGENCY'].includes(_alvl[idx])) img = _imgD
+        else if (['SERIOUS', 'WARNING'].includes(_alvl[idx])) img = _imgW
+        if (img && b.image !== img) b.image = img
+      }
+    } catch (e) {}
+  }
+
   function highlight(idx) {
     try {
       if (_level === 'low') {
@@ -294,7 +313,7 @@ export function useLodDroneRenderer(viewerRef) {
   }
 
   return {
-    init, addDrones, upsertDrone, highlight, destroy, getPosition,
+    init, addDrones, upsertDrone, highlight, setAlertLevel, destroy, getPosition,
     getCount: () => _count,
     getCurrentLevel: () => _level,
     isInitialized: () => _ready,

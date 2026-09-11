@@ -121,6 +121,22 @@
 
 ---
 
+---
+
+## 追加任务五：监控页重构反馈修复（图层拆分/告警双通道/重放独立/抑制服务端化）
+
+**实施记录（2026-09-12 完成验收）**
+- **图层拆分**：单一图层按钮拆为 空域/航路/起降场 三个按钮，各自独立滚动列表（含全选），修复列表过长选择困难。
+- **告警双通道**：初始化时接口拉取活跃告警（告警重放，一次性）驱动告警点着色；此后由 WS 实时推送增量更新——去掉轮询（用户明确轮询不可取）。
+- **消息重放独立菜单页**：FlightMonitor 内嵌回放面板移除。uav-realtime 新增遥测内存仓（latest 快照 + 10 分钟环形历史）与 /snapshot、/history?seconds= 端点；新页 MessageReplay 支持 最近1/5/10分钟 时间窗查询 + 地图回放（PointPrimitiveCollection，播放/暂停/倍速/进度拖拽）。FlightMonitor 加载时调 /snapshot，新连接立即获得全量在飞态势。
+- **告警抑制服务端化**：alarm_suppress 表（user_id+类型/级别/SN 组合规则）+ /api/alarm/suppress GET/POST/DELETE；生成侧 AlarmSuppressStore 过滤（命中不推送不落库）；前端改 el-dialog + el-checkbox-button 配置（勾选即调接口），废弃 localStorage。
+- **其他**：黑飞告警升级 CRITICAL（监控点红色）；丢帧提示阈值≥5 且 3 秒自动隐藏（背压丢弃属正常降级）。
+- 验收：快照 1006 架接入、历史 5.3 万条 1 分钟窗回放 100%、抑制规则勾选落库、图层三按钮列表正常；e2e 无 pageerror。
+
+**状态**：[x] 已完成（2026-09-12）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。

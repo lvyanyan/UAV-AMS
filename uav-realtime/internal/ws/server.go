@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"sync"
 
 	"github.com/gorilla/websocket"
 	"github.com/uav-ams/uav-realtime/internal/config"
 	"github.com/uav-ams/uav-realtime/internal/mqtt"
+	"github.com/uav-ams/uav-realtime/internal/store"
 )
 
 // wsClient 包装 WebSocket 连接，每个连接有独立写锁
@@ -26,6 +28,7 @@ type Server struct {
 	upgrader   websocket.Upgrader
 	clients    map[string]*wsClient
 	mu         sync.RWMutex
+	store      *store.TelemetryStore
 }
 
 // NewServer 创建 WebSocket 服务
@@ -47,9 +50,30 @@ func NewServer(cfg config.WebSocketConfig, mqttClient *mqtt.Client) *Server {
 	return s
 }
 
+// SetTelemetryStore 挂载遥测内存仓（在飞快照 / 历史回放）
+func (s *Server) SetTelemetryStore(store *store.TelemetryStore) { s.store = store }
+
 // Start 启动 HTTP 服务
 func (s *Server) Start(ctx context.Context) {
 	http.HandleFunc(s.cfg.Path, s.handleConnection)
+	// 在飞快照：新连接接入即得全量在飞态势
+	http.HandleFunc("/snapshot", func(w http.ResponseWriter, r *http.Request) {
+		if s.store == nil { http.NotFound(w, r); return }
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		snaps := s.store.Snapshots()
+		json.NewEncoder(w).Encode(map[string]interface{}{"count": len(snaps), "drones": snaps})
+	})
+	// 历史遥测：/history?seconds=600（供「消息重放」页查询回放）
+	http.HandleFunc("/history", func(w http.ResponseWriter, r *http.Request) {
+		if s.store == nil { http.NotFound(w, r); return }
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Content-Type", "application/json")
+		sec, err := strconv.Atoi(r.URL.Query().Get("seconds"))
+		if err != nil || sec <= 0 || sec > 1800 { sec = 600 }
+		msgs := s.store.History(sec)
+		json.NewEncoder(w).Encode(map[string]interface{}{"seconds": sec, "count": len(msgs), "msgs": msgs})
+	})
 
 	addr := fmt.Sprintf(":%d", s.cfg.Port)
 	go func() {

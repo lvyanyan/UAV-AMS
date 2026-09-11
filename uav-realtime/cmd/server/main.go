@@ -11,6 +11,7 @@ import (
 	"github.com/uav-ams/uav-realtime/internal/config"
 	"github.com/uav-ams/uav-realtime/internal/kafka"
 	"github.com/uav-ams/uav-realtime/internal/mqtt"
+	"github.com/uav-ams/uav-realtime/internal/store"
 	"github.com/uav-ams/uav-realtime/internal/ws"
 )
 
@@ -48,8 +49,18 @@ func main() {
 	})
 	log.Println("[Kafka] MQTT->Kafka bridge ready, topic:", cfg.Kafka.Topic)
 
+	// 遥测内存仓：在飞快照 + 历史环形缓冲（供快照接入与消息重放）
+	teleStore := store.New(10 * time.Minute)
+	mqttClient.OnTelemetry(func(t *mqtt.Telemetry) {
+		teleStore.Record(store.Record{
+			SN: t.DeviceSN, Lat: t.Position.Lat, Lon: t.Position.Lon,
+			Alt: t.Position.AltM, Heading: t.Position.Heading,
+		})
+	})
+
 	// WebSocket 广播（在 NewServer 里注册 OnTelemetry）
 	wsServer := ws.NewServer(cfg.WebSocket, mqttClient)
+	wsServer.SetTelemetryStore(teleStore)
 	go wsServer.Start(ctx)
 	log.Printf("[WS] Listening on :%d%s", cfg.WebSocket.Port, cfg.WebSocket.Path)
 

@@ -40,6 +40,7 @@ public class TelemetryConsumer {
     private final AlarmEventProducer alarmEventProducer;
     private final JdbcTemplate jdbc;
     private final AlarmOpenStateStore openStore;
+    private final com.uav.alarm.core.AlarmSuppressStore suppressStore;
 
     // 黑飞复检节流（黑飞告警关闭前无需反复评估）
     private final Map<String, Long> lastNoPlanEval = new ConcurrentHashMap<>();
@@ -52,12 +53,14 @@ public class TelemetryConsumer {
                              ObjectMapper objectMapper,
                              AlarmEventProducer alarmEventProducer,
                              JdbcTemplate jdbc,
-                             AlarmOpenStateStore openStore) {
+                             AlarmOpenStateStore openStore,
+                             com.uav.alarm.core.AlarmSuppressStore suppressStore) {
         this.alarmEngine = alarmEngine;
         this.objectMapper = objectMapper;
         this.alarmEventProducer = alarmEventProducer;
         this.jdbc = jdbc;
         this.openStore = openStore;
+        this.suppressStore = suppressStore;
     }
 
     @KafkaListener(topics = "uav.telemetry", groupId = "alarm-engine")
@@ -70,6 +73,9 @@ public class TelemetryConsumer {
 
             // 开关语义推送：已开启的同机同类型告警不再推送/落库，直到被关闭
             for (AlarmEventDTO alarm : alarms) {
+                // 告警抑制（服务端规则）：命中即不推送不落库
+                if (suppressStore.isSuppressed(alarm.getAlarmType().name(), alarm.getAlarmLevel().name(), alarm.getDroneSn())) continue
+                ;
                 if (openStore.isOpen(alarm.getDroneSn(), alarm.getAlarmType().name())) continue;
 
                 openStore.markOpen(alarm.getDroneSn(), alarm.getAlarmType().name());
@@ -123,7 +129,7 @@ public class TelemetryConsumer {
         alarm.setAlarmId(java.util.UUID.randomUUID().toString());
         alarm.setDroneSn(sn);
         alarm.setAlarmType(AlarmType.NO_FLIGHT_PLAN);
-        alarm.setAlarmLevel(AlarmLevel.SERIOUS);
+        alarm.setAlarmLevel(AlarmLevel.CRITICAL); // 黑飞属严重违规，按危急级呈现（监控点红色）
         alarm.setTitle("黑飞嫌疑：无计划飞行");
         alarm.setDescription("该无人机未登记或当前时段无已批准的飞行计划");
         alarm.setLatitude(telemetry.getLatitude());

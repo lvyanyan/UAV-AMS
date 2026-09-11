@@ -24,6 +24,13 @@ public class AlarmMigrationRunner implements CommandLineRunner {
         jdbc.update("UPDATE alarm_record SET status = CASE WHEN handled THEN 'CLOSED' ELSE 'OPEN' END WHERE status IS NULL");
         jdbc.update("UPDATE alarm_record SET closed_time = create_time WHERE handled = true AND closed_time IS NULL");
         jdbc.execute("CREATE INDEX IF NOT EXISTS idx_alarm_record_open ON alarm_record (status) WHERE status = 'OPEN'");
+        jdbc.execute("CREATE TABLE IF NOT EXISTS alarm_suppress ("
+            + "id bigserial PRIMARY KEY, "
+            + "user_id varchar(64) NOT NULL, "
+            + "alarm_type varchar(64), "
+            + "alarm_level varchar(64), "
+            + "drone_sn varchar(64), "
+            + "create_time timestamp DEFAULT now())");
         // 存量去重：同一 无人机|告警类型 只保留最新一条 OPEN，其余关闭（开关语义的不变量）
         jdbc.update("UPDATE alarm_record SET status = 'CLOSED', closed_time = now() "
             + "WHERE status = 'OPEN' AND id NOT IN ("
