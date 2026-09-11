@@ -165,6 +165,20 @@
 
 ---
 
+---
+
+## 追加任务八：大屏性能优化 + 渲染器 v3（浏览器卡崩溃修复）
+
+**实施记录（2026-09-12 完成验收）**
+- **根因一（报错）**：页面卸载/模式切换后 pending 的 flushBuffer→init 继续执行，destroyInternal 访问已销毁 Viewer 的 scene getter 抛错。修复：viewer() 统一守卫 isDestroyed，图片异步加载后二次校验。
+- **根因二（卡崩溃）**：仿真器 STRESS SN 随机生成且无限增长 → applyData 每个新 SN 扩 500 槽 × 3 集合 → 图元/内存无上限膨胀。修复：applyData LRU 槽位上限 4000（超限复用最久未更新槽位，同步清 droneMeta/lastSeen）。
+- **渲染器 v3**：移除坏死 BufferPoint 层（初始化图元量 ÷3）；低空 billboard 惰性按需创建（限批 800/帧）；upsert 颜色仅在等级变化时更新；销毁全路径 isDestroyed 守卫。
+- 实测：标准模式 120FPS 堆 49-73MB 稳定回落；百万 10 万 120FPS 堆 94-95MB 稳定；e2e 全页面回归无 pageerror。
+
+**状态**：[x] 已完成（2026-09-12）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。

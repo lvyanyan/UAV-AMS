@@ -724,20 +724,39 @@ function onTelemetry(data) {
   applyData(data, id)
 }
 
+const MAX_DRONES = 4000        // 槽位上限：仿真器 SN 随机生成，无上限会撑爆浏览器
+const lastSeen = new Map()     // sn -> 最后遥测时间（LRU 驱逐依据）
+
 function applyData(data, id) {
   // 告警事件积累的等级合入遥测，供渲染器按级别着色
   const meta = droneMeta.get(id)
   if (meta && meta.alertLevel) data.alertLevel = meta.alertLevel
+
+  const now = Date.now()
+  lastSeen.set(id, now)
+
   let slot = droneMap.get(id)
   if (slot === undefined) {
-    // 新无人机 → 扩容
-    slot = nextSlot++
-    droneMap.set(id, slot)
-    slotToSn[slot] = id
-    // 确保 renderer 有足够槽位
-    if (slot >= renderer.getCount()) {
-      const need = slot - renderer.getCount() + 500  // 一次扩 500
-      renderer.addDrones(need)
+    if (nextSlot < MAX_DRONES) {
+      // 未达上限：分配新槽位，不足则批量扩容
+      slot = nextSlot++
+      droneMap.set(id, slot)
+      slotToSn[slot] = id
+      if (slot >= renderer.getCount()) renderer.addDrones(Math.min(500, MAX_DRONES - renderer.getCount()))
+    } else {
+      // 已达上限：复用最久未更新的槽位（LRU）
+      let oldestSn = null, oldestT = Infinity
+      for (const [sn2, s2] of droneMap) {
+        const t = lastSeen.get(sn2) || 0
+        if (t < oldestT) { oldestT = t; oldestSn = sn2; slot = s2 }
+      }
+      if (oldestSn) {
+        droneMap.delete(oldestSn)
+        lastSeen.delete(oldestSn)
+        droneMeta.delete(oldestSn)
+      }
+      droneMap.set(id, slot)
+      slotToSn[slot] = id
     }
   }
   renderer.upsertDrone(data, slot)
