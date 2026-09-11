@@ -31,9 +31,13 @@ public class AlarmEventProducer {
     public void sendAlarm(AlarmEventDTO alarm) {
         try {
             String json = objectMapper.writeValueAsString(alarm);
-            kafkaTemplate.send(TOPIC, alarm.getDroneSn(), json);
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize alarm event: {}", e.getMessage());
+            kafkaTemplate.send(TOPIC, alarm.getDroneSn(), json).whenComplete((result, ex) -> {
+                if (ex != null) {
+                    log.error("[Kafka] 告警事件发送失败: {}", ex.getMessage());
+                }
+            });
+        } catch (Exception e) {
+            log.error("[Kafka] 告警事件序列化失败: {}", e.getMessage());
         }
     }
 }

@@ -40,14 +40,9 @@ public class TelemetryConsumer {
         this.jdbc = jdbc;
     }
 
-    private long probeSeq = 0;
-
     @KafkaListener(topics = "uav.telemetry", groupId = "alarm-engine")
     public void onTelemetry(String message) {
         try {
-            if (probeSeq++ % 2000 == 0) {
-                log.info("RAW[{}]: {}", probeSeq, message.length() > 180 ? message.substring(0, 180) : message);
-            }
             TelemetryDTO telemetry = objectMapper.readValue(message, TelemetryDTO.class);
 
             // 核心告警评估
