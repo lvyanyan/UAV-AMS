@@ -194,9 +194,14 @@ export function useLodDroneRenderer(viewerRef) {
     _hf[idx] = !!data.isHf
 
     try {
-      if (_level === 'high') { const bp = getBp(idx); if (bp) bp.setPosition(cart) }
-      else if (_level === 'mid') { const p = getPt(idx); if (p) p.position = cart }
-      else if (_level === 'low') {
+      if (_level === 'high') {
+        // BufferPoint 只有 position 属性 setter（没有 setPosition 方法，调用会抛错被吞）
+        const bp = getBp(idx)
+        if (bp) bp.position = cart
+      } else if (_level === 'mid') {
+        const p = getPt(idx)
+        if (p) p.position = cart
+      } else if (_level === 'low') {
         const b = getBb(idx)
         if (!b) return
         b.position = cart
