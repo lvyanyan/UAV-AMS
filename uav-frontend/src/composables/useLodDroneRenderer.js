@@ -1,14 +1,11 @@
 /**
  * 无人机 LOD 分层渲染器 v2 — 支持动态扩容
  *
- *   🛰️ 高空 (>50km) → BufferPointCollection（百万级）
- *   🏙️ 中空 (5~50km) → PointPrimitiveCollection（万级，蓝色）
- *   🚁 低空 (<5km)  → BillboardCollection（带预警色+航向）
+ *   🏙️ 中高空 (>5km)  → PointPrimitiveCollection（万级，真实遥测位置实时更新）
+ *   🚁 低空 (<5km)     → BillboardCollection（带预警色+航向）
  *
- * 新增：
- *   - addDrones(n) 动态扩容，不销毁已有机群
- *   - 蓝色 CORNFLOWERBLUE 默认色
- *   - 圆形分散初始位置
+ *   注：BufferPointCollection 静态缓冲层不适配「每秒全量改位置」的动态机队
+ *   （写入不生效，会退化成 spreadPos 初始螺旋），万级规模直接用 Point 层。
  */
 
 import * as Cesium from 'cesium'
@@ -194,14 +191,7 @@ export function useLodDroneRenderer(viewerRef) {
     _hf[idx] = !!data.isHf
 
     try {
-      if (_level === 'high') {
-        // BufferPoint 只有 position 属性 setter（没有 setPosition 方法，调用会抛错被吞）
-        const bp = getBp(idx)
-        if (bp) bp.position = cart
-      } else if (_level === 'mid') {
-        const p = getPt(idx)
-        if (p) p.position = cart
-      } else if (_level === 'low') {
+      if (_level === 'low') {
         const b = getBb(idx)
         if (!b) return
         b.position = cart
@@ -211,6 +201,10 @@ export function useLodDroneRenderer(viewerRef) {
         else if (['MAJOR','CRITICAL','EMERGENCY'].includes(_alvl[idx])) img = _imgD
         else if (['WARNING','MINOR'].includes(_alvl[idx])) img = _imgW
         if (img && b.image !== img) b.image = img
+      } else {
+        // 万级机队：中高空统一走 PointPrimitiveCollection（真实遥测位置）
+        const p = getPt(idx)
+        if (p) p.position = cart
       }
     } catch (e) {}
   }
@@ -226,13 +220,16 @@ export function useLodDroneRenderer(viewerRef) {
   }
 
   // ---- LOD 切换 ----
+  // 万级机队：>5km 一律沿用 PointPrimitiveCollection（真实遥测位置实时更新）；
+  // BufferPointCollection 静态缓冲层不再启用——其点位无法逐帧改写，切换后
+  // 会退化成 spreadPos 初始螺旋（蛇形）。
   function applyLod(h) {
-    let lv = h > LOD.HIGH_ALT ? 'high' : h > LOD.MID_ALT ? 'mid' : 'low'
+    let lv = h > LOD.MID_ALT ? 'mid' : 'low'
     const changed = lv !== _level
     _level = lv
     // 三集合互斥：每次都必须执行（首次进入时集合构造默认 show:true）
     try {
-      if (_bufCol && !_bufCol.isDestroyed()) _bufCol.show = (lv === 'high')
+      if (_bufCol && !_bufCol.isDestroyed()) _bufCol.show = false
       if (_ptCol && !_ptCol.isDestroyed()) _ptCol.show = (lv === 'mid')
       if (_bbCol && !_bbCol.isDestroyed()) _bbCol.show = (lv === 'low')
     } catch (e) {}
@@ -274,8 +271,8 @@ export function useLodDroneRenderer(viewerRef) {
   // 读取指定槽位无人机当前的三维坐标（供 DOM 标牌跟随投影）
   function getPosition(idx) {
     try {
-      if (_level === 'high') { const bp = getBp(idx); return bp ? bp.position : null }
-      if (_level === 'mid') { const p = getPt(idx); return p ? p.position : null }
+      if (_level === 'low') { const b = getBb(idx); return b ? b.position : null }
+      const p = getPt(idx); return p ? p.position : null
       const b = getBb(idx); return b ? b.position : null
     } catch (e) { return null }
   }
