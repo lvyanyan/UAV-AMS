@@ -59,6 +59,11 @@ func main() {
 		)
 		totalDrones += sc.DroneCount
 	}
+
+	// 真实飞行流程场景：已登记无人机执行已审批飞行计划（与 deploy/sql 种子数据对应）
+	sim.CreateRealFlowFleet(drone.DefaultRealMissions)
+	totalDrones += len(drone.DefaultRealMissions)
+	log.Printf("📋 加载场景: 真实飞行流程 → %d 架已登记无人机执行已审批计划", len(drone.DefaultRealMissions))
 	log.Printf("✅ 共创建 %d 架仿真无人机", totalDrones)
 
 	// 连接 MQTT

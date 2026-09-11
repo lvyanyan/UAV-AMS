@@ -14,7 +14,7 @@ mqtt:
 # ---- 仿真参数 ----
 simulation:
   tick_interval_ms: 200               # 仿真时钟间隔 (毫秒)
-  telemetry_rate_hz: 5.0              # 遥测发布频率 (Hz)
+  telemetry_rate_hz: 1.0              # 遥测发布频率 (Hz)
   heartbeat_interval_sec: 5           # 心跳间隔 (秒)
   batch_size: 100                     # 批量创建数量
   enable_violations: true             # 是否启用违规模拟
@@ -31,7 +31,7 @@ scenarios:
     center_lat: 39.9042               # 场景中心 (北京)
     center_lon: 116.4074
     radius_km: 80.0                   # 活动半径 80km（分散开）
-    min_alt_m: 50.0                   # 最低飞行高度
+    min_alt_m: 20.0                   # 最低飞行高度
     max_alt_m: 300.0                  # 最高飞行高度
     min_speed_ms: 5.0                 # 最低速度
     max_speed_ms: 25.0                # 最高速度

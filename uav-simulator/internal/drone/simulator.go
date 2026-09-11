@@ -16,6 +16,9 @@ type Simulator struct {
 	pathGen *FlightPathGenerator
 	config  SimulatorConfig
 
+	// 遥测发送周期（秒），由 TelemetryRateHz 换算
+	telemetryPeriod float64
+
 	// 统计
 	stats SimulatorStats
 }
@@ -40,11 +43,16 @@ type SimulatorStats struct {
 // NewSimulator 创建仿真引擎
 func NewSimulator(cfg SimulatorConfig, seed int64) *Simulator {
 	rng := rand.New(rand.NewSource(seed))
+	period := 1.0
+	if cfg.TelemetryRateHz > 0 {
+		period = 1.0 / cfg.TelemetryRateHz
+	}
 	return &Simulator{
-		drones:  make(map[string]*Drone),
-		rng:     rng,
-		pathGen: NewFlightPathGenerator(rng),
-		config:  cfg,
+		drones:          make(map[string]*Drone),
+		rng:             rng,
+		pathGen:         NewFlightPathGenerator(rng),
+		config:          cfg,
+		telemetryPeriod: period,
 	}
 }
 
@@ -83,6 +91,13 @@ func (s *Simulator) Tick(deltaTime float64) []Telemetry {
 	for _, d := range s.drones {
 		d.Lock()
 
+		// 遥测发送节流：每架无人机按 TelemetryRateHz 独立计频
+		d.teleAccum += deltaTime
+		sendNow := d.teleAccum >= s.telemetryPeriod
+		if sendNow {
+			d.teleAccum = 0
+		}
+
 		switch d.FlightPhase {
 		case PhaseIdle:
 			s.handleIdle(d)
@@ -111,7 +126,7 @@ func (s *Simulator) Tick(deltaTime float64) []Telemetry {
 		d.Unlock()
 
 		// 按频率决定是否输出遥测
-		if s.shouldSendTelemetry(d) {
+		if sendNow && s.shouldSendTelemetry(d) {
 			d.Lock()
 			t := d.GetTelemetry()
 			d.Unlock()
@@ -161,8 +176,12 @@ func (s *Simulator) GetDrone(sn string) (*Drone, bool) {
 	return d, ok
 }
 
-// handleIdle 待命状态 → 随机起飞
+// handleIdle 待命状态 → 真实流程机按绑定计划重飞；其余随机起飞
 func (s *Simulator) handleIdle(d *Drone) {
+	if len(d.realMissions) > 0 {
+		d.startNextRealMission()
+		return
+	}
 	// 30% 概率起飞 (每秒)
 	if s.rng.Float64() < 0.3 {
 		flightDuration := float64(60 * (d.rng.Intn(30) + 10)) // 10-40 分钟

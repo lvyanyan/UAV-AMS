@@ -109,6 +109,11 @@ type Drone struct {
 	// 飞行计划
 	flightPlanID string
 
+	// 真实流程任务（绑定已审批飞行计划，与 flight_plan 表对应）
+	realMissions []RealMission
+	missionIdx   int
+	teleAccum    float64 // 遥测发送节流累计器（秒）
+
 	// 随机状态
 	rng *rand.Rand
 }
@@ -155,6 +160,16 @@ func (d *Drone) ForceRTL(reason string) {
 	// 直接飞回 home point
 	d.waypoints = []Position{d.homePos}
 	d.currentWP = 0
+}
+
+// startNextRealMission 开始下一个真实流程任务（降落充电后轮换重飞）
+func (d *Drone) startNextRealMission() {
+	if len(d.realMissions) == 0 {
+		return
+	}
+	m := d.realMissions[d.missionIdx%len(d.realMissions)]
+	d.missionIdx++
+	d.TakeOff(m.PlanCode, 3600, append([]Position{}, m.Waypoints...))
 }
 
 // GetTelemetry 生成遥测数据
