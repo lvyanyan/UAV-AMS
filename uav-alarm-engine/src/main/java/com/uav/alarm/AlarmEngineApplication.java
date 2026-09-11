@@ -2,13 +2,10 @@ package com.uav.alarm;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication(
-    scanBasePackages = "com.uav.alarm",
-    exclude = {DataSourceAutoConfiguration.class}
-)
+// 告警持久化（alarm_record）启用数据源；端口见 application.yml（8095）
+@SpringBootApplication
 @EnableScheduling
 public class AlarmEngineApplication {
 
@@ -16,7 +13,6 @@ public class AlarmEngineApplication {
         SpringApplication.run(AlarmEngineApplication.class, args);
         System.out.println("========================================");
         System.out.println("  UAV Alarm Engine started.            ");
-        System.out.println("  Port: 8082                            ");
         System.out.println("========================================");
     }
 }
