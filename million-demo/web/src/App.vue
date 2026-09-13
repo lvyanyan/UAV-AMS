@@ -2,6 +2,7 @@
   <div class="app">
     <div ref="cesiumContainer" class="cesium-container" />
     <ControlPanel
+      v-show="scriptMode !== 'playing'"
       :connected="connected"
       :drone-count="droneCount"
       :drawn-count="drawnCount"
@@ -16,9 +17,19 @@
       @toggle-debug-fps="onToggleDebugFps"
       @set-full="onSetFull"
     />
-    <div v-if="dropped > 0" class="drop-overlay">
+    <NarrationCard
+      v-if="scriptMode === 'playing'"
+      :step="narIdx" :total="narTotal" :title="narTitle" :body="narBody"
+      @skip="skipDemo"
+    />
+    <button v-if="scriptMode === 'free'" class="replay-btn" @click="startDemo">▶ 重播演示</button>
+    <div v-if="dropped > 0 && scriptMode !== 'playing'" class="drop-overlay">
       丢弃过时帧 {{ dropped }}（Worker/渲染跟不上）
     </div>
+    <IntroOverlay
+      v-if="scriptMode === 'intro'"
+      @start="startDemo" @skip="skipDemo"
+    />
   </div>
 </template>
 
@@ -28,7 +39,17 @@ import * as Cesium from 'cesium'
 import { useCesium } from './composables/useCesium.js'
 import { useLodRenderer } from './composables/useLodRenderer.js'
 import { useBoundary } from './composables/useBoundary.js'
+import { useDemoScript } from './composables/useDemoScript.js'
 import ControlPanel from './components/ControlPanel.vue'
+import IntroOverlay from './components/IntroOverlay.vue'
+import NarrationCard from './components/NarrationCard.vue'
+
+// 演示动线：intro 开场引导 → playing 剧本巡航 → free 自由探索
+const scriptMode = ref('intro')
+const narIdx = ref(0)
+const narTotal = ref(0)
+const narTitle = ref('')
+const narBody = ref('')
 
 // 同源动态拼接：本地 dev 连 5173（vite 代理 /stress），线上经 Caddy 反代 /stress
 const WS_URL = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/stress'
@@ -39,6 +60,24 @@ const viewerRef = shallowRef(null)
 const useC = useCesium(viewerRef)
 const renderer = useLodRenderer(viewerRef)
 const boundary = useBoundary(viewerRef)
+const demo = useDemoScript(viewerRef)
+
+function startDemo() {
+  scriptMode.value = 'playing'
+  demo.run((i, s) => {
+    narIdx.value = i
+    narTotal.value = demo.STEPS.length
+    narTitle.value = s.title
+    narBody.value = s.body
+  }).then(finished => {
+    if (finished) scriptMode.value = 'free'
+  })
+}
+
+function skipDemo() {
+  demo.skip()
+  scriptMode.value = 'free'
+}
 
 const connected = ref(false)
 const droneCount = ref(0)
@@ -261,4 +300,12 @@ html, body, #app { margin: 0; padding: 0; width: 100%; height: 100%; overflow: h
   background: rgba(120,0,0,0.8); color: #fff; padding: 6px 14px;
   border-radius: 6px; font-size: 12px; z-index: 10; font-family: monospace;
 }
+.replay-btn {
+  position: absolute; left: 14px; bottom: 14px; z-index: 15;
+  background: rgba(13, 17, 23, 0.82); color: #e6edf3;
+  border: 1px solid rgba(79, 163, 199, 0.4); border-radius: 8px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+  backdrop-filter: blur(6px); transition: 0.15s;
+}
+.replay-btn:hover { border-color: #4fa3c7; color: #fff; }
 </style>
