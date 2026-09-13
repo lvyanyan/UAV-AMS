@@ -257,7 +257,7 @@ async function loadLayers() {
 // ── 在飞快照：新连接立即获得当前在飞无人机态势 ──
 async function loadSnapshot() {
   try {
-    const res = await fetch('http://localhost:8090/snapshot')
+    const res = await fetch('/snapshot')
     const json = await res.json()
     let n = 0
     for (const d of json.drones || []) {

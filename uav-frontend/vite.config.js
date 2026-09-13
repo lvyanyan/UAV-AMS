@@ -4,6 +4,8 @@ import cesium from 'vite-plugin-cesium'
 import path from 'path'
 
 export default defineConfig({
+  // 线上部署在 /apps/uav-ams 子路径（https://www.lvyanyan.net/apps/uav-ams/）；本地 dev 为 /
+  base: process.env.VITE_BASE || '/',
   plugins: [
     vue(),
     cesium()
