@@ -19,17 +19,18 @@ const IMG_PATHS = {
   HF: '/images/drones/hf-fusion.png',
 }
 
-const LOD = { MID_ALT: 5000 }
+const LOD = { MID_ALT: 50000 }  // 50km 以上才用小圆点，之下都保留无人机图标
 const CENTER_LON = 116.4
 const CENTER_LAT = 39.9
 const SPREAD_RADIUS_DEG = 0.8
 
-// 告警等级 → 颜色（缓存实例，避免频繁创建）
+// 告警等级 → 颜色（缓存实例，避免频繁创建）；黑飞（HF）专属黑色
 const _alertColorCache = {}
 function alertPointColor(level) {
   const key = level || 'NORMAL'
   if (!_alertColorCache[key]) {
-    if (['CRITICAL', 'MAJOR', 'EMERGENCY'].includes(key)) _alertColorCache[key] = Cesium.Color.fromCssColorString('#f56c6c')
+    if (key === 'HF') _alertColorCache[key] = Cesium.Color.fromCssColorString('#0d0d0d')
+    else if (['CRITICAL', 'MAJOR', 'EMERGENCY'].includes(key)) _alertColorCache[key] = Cesium.Color.fromCssColorString('#f56c6c')
     else if (['SERIOUS', 'WARNING'].includes(key)) _alertColorCache[key] = Cesium.Color.fromCssColorString('#e6a23c')
     else if (key === 'MINOR') _alertColorCache[key] = Cesium.Color.fromCssColorString('#409eff')
     else _alertColorCache[key] = Cesium.Color.CORNFLOWERBLUE
@@ -102,7 +103,7 @@ export function useLodDroneRenderer(viewerRef) {
   }
 
   function alarmImage(level, hf) {
-    if (hf) return _imgH || _imgN
+    if (hf || level === 'HF') return _imgH || _imgN
     if (['MAJOR', 'CRITICAL', 'EMERGENCY'].includes(level)) return _imgD || _imgN
     if (['SERIOUS', 'WARNING', 'MINOR'].includes(level)) return _imgW || _imgN
     return _imgN
@@ -222,8 +223,13 @@ export function useLodDroneRenderer(viewerRef) {
     _hdg[idx] = Number(pos.heading ?? data.heading ?? 0)
     _hf[idx] = !!data.isHf
 
+    // 黑飞（无计划飞行）专属标识：遥测显式标记 或 告警类型为 NO_FLIGHT_PLAN
+    const wasHf = _hf[idx] === true
+    _hf[idx] = !!data.isHf || data.alertType === 'NO_FLIGHT_PLAN' || !!data.isBlackFlight
+
     const newLevel = data.alertLevel || 'NORMAL'
-    const levelChanged = _alvl[idx] !== newLevel
+    // 黑飞标志变化也要触发图标刷新（黑飞用专属黑色图标）
+    const levelChanged = _alvl[idx] !== newLevel || wasHf !== _hf[idx]
     _alvl[idx] = newLevel
 
     try {
@@ -233,13 +239,13 @@ export function useLodDroneRenderer(viewerRef) {
         b.position = cart
         b.rotation = -Cesium.Math.toRadians(_hdg[idx])
         if (levelChanged) {
-          b.image = alarmImage(newLevel, _hf[idx])
+          b.image = alarmImage(_hf[idx] ? 'HF' : newLevel, _hf[idx])
         }
       } else {
         const p = getPt(idx)
         if (!p) return
         p.position = cart
-        if (levelChanged) p.color = alertPointColor(newLevel)
+        if (levelChanged) p.color = alertPointColor(_hf[idx] ? 'HF' : newLevel)
       }
     } catch (e) {}
   }
@@ -254,10 +260,12 @@ export function useLodDroneRenderer(viewerRef) {
     } catch (e) {}
   }
 
-  /** 外部按 SN 拉取活跃告警后，刷新某槽位的告警等级与配色 */
-  function setAlertLevel(idx, level) {
+  /** 外部按 SN 拉取活跃告警后，刷新某槽位的告警等级与配色（type 传入告警类型以识别黑飞） */
+  function setAlertLevel(idx, level, type) {
     if (!_ready || idx === undefined || idx >= _count) return
-    const lvl = level || 'NORMAL'
+    const isHf = type === 'NO_FLIGHT_PLAN'
+    _hf[idx] = isHf
+    const lvl = isHf ? 'HF' : (level || 'NORMAL')
     const changed = _alvl[idx] !== lvl
     _alvl[idx] = lvl
     try {
@@ -266,7 +274,7 @@ export function useLodDroneRenderer(viewerRef) {
         if (p) p.color = alertPointColor(lvl)
       } else if (changed && _level === 'low') {
         const b = getBb(idx)
-        if (b) b.image = alarmImage(lvl, _hf[idx])
+        if (b) b.image = alarmImage(lvl, isHf)
       }
     } catch (e) {}
   }

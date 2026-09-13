@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,13 +14,19 @@ import (
 
 // Publisher MQTT 发布器
 type Publisher struct {
-	client   mqtt.Client
-	config   PublisherConfig
-	mu       sync.Mutex
+	client    mqtt.Client
+	config    PublisherConfig
+	mu        sync.Mutex
 	connected bool
 	msgSent   int64
 	errCount  int64
+
+	// 平台指令回调（uav/+/cmd 订阅分发）
+	onCommand CommandHandler
 }
+
+// CommandHandler 平台指令回调：sn=目标机 SN，action=TAKEOFF/RTL/LAND/ABORT，planCode=关联计划号
+type CommandHandler func(sn, action, planCode string)
 
 // PublisherConfig 发布器配置
 type PublisherConfig struct {
@@ -60,6 +67,18 @@ func (p *Publisher) Connect() error {
 			p.mu.Lock()
 			p.connected = true
 			p.mu.Unlock()
+
+			// 订阅平台指令主题（挂在 OnConnect：重连后自动重订）
+			if p.onCommand != nil {
+				topic := "uav/+/cmd"
+				token := client.Subscribe(topic, p.config.QoS, p.onCommandMessage)
+				token.Wait()
+				if token.Error() != nil {
+					log.Printf("[MQTT] 订阅 %s 失败: %v", topic, token.Error())
+				} else {
+					log.Printf("[MQTT] 已订阅指令主题: %s", topic)
+				}
+			}
 		})
 
 	if p.config.Username != "" {
@@ -90,6 +109,38 @@ func (p *Publisher) IsConnected() bool {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.connected
+}
+
+// OnCommand 注册平台指令处理器（须在 Connect 前调用，随连接建立自动订阅）
+func (p *Publisher) OnCommand(handler CommandHandler) {
+	p.mu.Lock()
+	p.onCommand = handler
+	p.mu.Unlock()
+}
+
+// onCommandMessage 解析 uav/{sn}/cmd 指令并分发
+func (p *Publisher) onCommandMessage(_ mqtt.Client, msg mqtt.Message) {
+	parts := strings.Split(msg.Topic(), "/")
+	if len(parts) != 3 || parts[0] != "uav" || parts[2] != "cmd" || parts[1] == "" {
+		log.Printf("[MQTT] 无法从主题解析 SN: %s", msg.Topic())
+		return
+	}
+	sn := parts[1]
+	var cmd struct {
+		Action   string `json:"action"`
+		PlanCode string `json:"planCode"`
+		Ts       int64  `json:"ts"`
+	}
+	if err := json.Unmarshal(msg.Payload(), &cmd); err != nil {
+		log.Printf("[MQTT] 指令解析失败 [%s]: %v", msg.Topic(), err)
+		return
+	}
+	p.mu.Lock()
+	handler := p.onCommand
+	p.mu.Unlock()
+	if handler != nil {
+		handler(sn, cmd.Action, cmd.PlanCode)
+	}
 }
 
 // PublishTelemetry 发布遥测数据

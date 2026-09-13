@@ -11,7 +11,15 @@ import (
 type Config struct {
 	MQTT     MQTTConfig     `yaml:"mqtt"`
 	Simulation SimulationConfig `yaml:"simulation"`
+	Realflow RealflowConfig `yaml:"realflow"`
 	Scenarios []ScenarioConfig  `yaml:"scenarios"`
+}
+
+// RealflowConfig 真实流程机队（REG-UAV-000x）控制方式
+type RealflowConfig struct {
+	// autoStart=true：旧行为，启动即全部起飞并无限轮换重飞；
+	// autoStart=false（默认）：启动后待命 IDLE，等待平台 TAKEOFF 指令（按 planCode 匹配）受控起飞。
+	AutoStart bool `yaml:"autoStart"`
 }
 
 // MQTTConfig MQTT 连接配置
@@ -72,6 +80,9 @@ func DefaultConfig() *Config {
 			EnableViolations:     true,
 			ViolationProb:        0.02,
 			RandomSeed:           42,
+		},
+		Realflow: RealflowConfig{
+			AutoStart: false, // 默认受控起飞：等待平台放行/起飞指令
 		},
 		Scenarios: []ScenarioConfig{
 			{

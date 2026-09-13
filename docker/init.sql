@@ -10,26 +10,46 @@ CREATE TABLE IF NOT EXISTS sys_organization (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP, update_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ===== 2. 角色 =====
+-- ===== 2. 角色（role_code 主键；与 uav-system RbacInitializer 幂等种子保持一致） =====
 CREATE TABLE IF NOT EXISTS sys_role (
-    id BIGSERIAL PRIMARY KEY, role_code VARCHAR(50) NOT NULL UNIQUE,
-    role_name VARCHAR(100) NOT NULL, description VARCHAR(255),
-    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    role_code   VARCHAR(32) PRIMARY KEY,
+    role_name   VARCHAR(64) NOT NULL,
+    description VARCHAR(255),
+    enabled     BOOLEAN DEFAULT TRUE,
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+-- 旧库升级兼容：老版本 sys_role 为 id 主键 + create_time，缺列则补齐（幂等）
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE;
+ALTER TABLE sys_role ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- ===== 3. 权限 =====
+-- ===== 3. 权限（perm_type 仅允许 MENU/BUTTON） =====
 CREATE TABLE IF NOT EXISTS sys_permission (
-    id BIGSERIAL PRIMARY KEY, perm_code VARCHAR(100) NOT NULL UNIQUE,
-    perm_name VARCHAR(100) NOT NULL, perm_type VARCHAR(20) DEFAULT 'MENU',
-    parent_id BIGINT DEFAULT 0, path VARCHAR(255), icon VARCHAR(100),
-    sort_order INT DEFAULT 0, create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id BIGSERIAL PRIMARY KEY, perm_code VARCHAR(64) NOT NULL UNIQUE,
+    perm_name VARCHAR(64) NOT NULL,
+    perm_type VARCHAR(16) DEFAULT 'MENU' CHECK (perm_type IN ('MENU','BUTTON')),
+    parent_id BIGINT DEFAULT 0, path VARCHAR(255), icon VARCHAR(64),
+    sort_order INT DEFAULT 0, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE sys_permission ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- ===== 4. 角色权限关联 =====
+-- ===== 4. 角色权限关联（按 role_code + perm_code 关联，与单角色 role_code 字段并存） =====
 CREATE TABLE IF NOT EXISTS sys_role_permission (
-    id BIGSERIAL PRIMARY KEY, role_id BIGINT NOT NULL,
-    perm_id BIGINT NOT NULL, UNIQUE (role_id, perm_id)
+    role_code VARCHAR(32) NOT NULL,
+    perm_code VARCHAR(64) NOT NULL,
+    PRIMARY KEY (role_code, perm_code)
 );
+-- 老版本 role_id/perm_id 结构为空表，直接替换为新结构（幂等）
+DO $$ BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'sys_role_permission' AND column_name = 'role_id') THEN
+        DROP TABLE sys_role_permission;
+        CREATE TABLE sys_role_permission (
+            role_code VARCHAR(32) NOT NULL,
+            perm_code VARCHAR(64) NOT NULL,
+            PRIMARY KEY (role_code, perm_code)
+        );
+    END IF;
+END $$;
 
 -- ===== 5. 用户 =====
 CREATE TABLE IF NOT EXISTS sys_user (
@@ -54,8 +74,10 @@ CREATE TABLE IF NOT EXISTS sys_mfa_log (
 CREATE TABLE IF NOT EXISTS sys_audit_log (
     id BIGSERIAL PRIMARY KEY, user_id BIGINT, username VARCHAR(50),
     action VARCHAR(100), target VARCHAR(255), detail TEXT,
-    ip_address VARCHAR(50), create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ip_address VARCHAR(50), created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+ALTER TABLE sys_audit_log ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
 -- ===== 8. 空域 =====
 CREATE TABLE IF NOT EXISTS uav_airspace (
@@ -100,6 +122,7 @@ CREATE TABLE IF NOT EXISTS flight_plan (
     plan_status VARCHAR(30) DEFAULT 'DRAFT', drone_sn VARCHAR(50),
     pilot_id BIGINT, route_id BIGINT, departure VARCHAR(255),
     destination VARCHAR(255), planned_start TIMESTAMP, planned_end TIMESTAMP,
+    actual_start TIMESTAMP, actual_end TIMESTAMP, cmd_sent_at TIMESTAMP,
     alt_floor_m DOUBLE PRECISION, alt_ceiling_m DOUBLE PRECISION,
     flight_purpose VARCHAR(255), risk_level VARCHAR(20),
     submitter_id BIGINT, submit_time TIMESTAMP,
@@ -194,30 +217,125 @@ CREATE TABLE IF NOT EXISTS external_integration_log (
 -- 用户由 uav-system 的 DataInitializer 在启动时创建 (BCrypt 编码)
 -- ================================================================
 
-INSERT INTO sys_role (role_code, role_name, description) VALUES
-('ADMIN','系统管理员','全部权限'),
-('REGULATOR','监管员','飞行审批、违规处置'),
-('OPERATOR','操作员','飞行计划管理、数据查看'),
-('SUPERVISOR','监察员','只读查看'),
-('MILITARY','军民协调员','军事调度、一键批准'),
-('PILOT','驾驶员','飞行申报、个人数据')
-ON CONFLICT (role_code) DO NOTHING;
+INSERT INTO sys_role (role_code, role_name, description, enabled) VALUES
+('ADMIN','系统管理员','最高权限，拥有全部菜单与操作权限',TRUE),
+('OPERATOR','操作员','登记备案与飞行计划创建、提交',TRUE),
+('REGULATOR','监管员','业务监管与飞行计划审批',TRUE),
+('MILITARY','军民协调员','军事调度、军事审批与一键清场',TRUE),
+('SUPERVISOR','上级领导','只读查看所有业务数据',TRUE),
+('PILOT','驾驶员','飞行计划填报与基础查询',TRUE)
+ON CONFLICT (role_code) DO UPDATE SET
+    role_name = EXCLUDED.role_name,
+    description = EXCLUDED.description,
+    created_at = COALESCE(sys_role.created_at, EXCLUDED.created_at);
 
+-- 清理旧版单词风格权限种子（已被 域:资源:操作 风格取代）
+DELETE FROM sys_permission WHERE perm_code IN
+    ('dashboard','flight_monitor','flight_plan','airspace_mgmt','registry','pilot_mgmt',
+     'alarm_center','violation','system_mgmt','military_ops','plan_approve',
+     'military_approve','airspace_clear');
+
+-- 菜单 + 按钮权限（parent_id 先置 0，插入后统一挂接父节点，保证幂等）
 INSERT INTO sys_permission (perm_code, perm_name, perm_type, parent_id, path, icon, sort_order) VALUES
-('dashboard','仪表盘','MENU',0,'/dashboard','Odometer',1),
-('flight_monitor','飞行监控','MENU',0,'/flight-monitor','Monitor',2),
-('flight_plan','飞行计划','MENU',0,'/flight-plan','Document',3),
-('airspace_mgmt','空域管理','MENU',0,'/airspace','MapLocation',4),
-('registry','实名登记','MENU',0,'/registry','Files',5),
-('pilot_mgmt','驾驶员管理','MENU',0,'/pilot','UserFilled',6),
-('alarm_center','告警中心','MENU',0,'/alarm','Bell',7),
-('violation','违规处置','MENU',0,'/violation','WarningFilled',8),
-('system_mgmt','系统管理','MENU',0,'/system','Setting',9),
-('military_ops','军事调度','MENU',0,'/military','Medal',10),
-('plan_approve','计划审批','BUTTON',3,'','',0),
-('military_approve','军事批准','BUTTON',10,'','',0),
-('airspace_clear','空域清场','BUTTON',10,'','',0)
-ON CONFLICT (perm_code) DO NOTHING;
+    ('dashboard:menu',    '仪表盘',     'MENU',   0, '/dashboard',      'Odometer',             1),
+    ('monitor:menu',      '飞行监控',   'MENU',   0, '/flight-monitor', 'Monitor',              2),
+    ('replay:menu',       '消息重放',   'MENU',   0, '/message-replay', 'VideoPlay',            3),
+    ('flightplan:menu',   '飞行计划',   'MENU',   0, '/flight-plan',    'Document',             4),
+    ('airspace:menu',     '空域管理',   'MENU',   0, '/airspace',       'MapLocation',          5),
+    ('airroute:menu',     '航路管理',   'MENU',   0, '/air-route',      'Guide',                6),
+    ('airport:menu',      '起降场管理', 'MENU',   0, '/airport',        'LocationInformation',  7),
+    ('registry:menu',     '实名登记',   'MENU',   0, '/registry',       'Files',                8),
+    ('pilot:menu',        '飞手管理',   'MENU',   0, '/pilot',          'UserFilled',           9),
+    ('alarm:menu',        '告警中心',   'MENU',   0, '/alarm',          'Bell',                10),
+    ('violation:menu',    '违规处置',   'MENU',   0, '/violation',      'WarningFilled',       11),
+    ('military:menu',     '军事调度',   'MENU',   0, '/military',       'Medal',               12),
+    ('system:menu',       '系统管理',   'MENU',   0, '/system',         'Setting',             13),
+    ('system:user:menu',  '用户管理',   'MENU',   0, '/system/users',   'UserFilled',           1),
+    ('system:role:menu',  '角色管理',   'MENU',   0, '/system/roles',   'Avatar',               2),
+    ('system:audit:menu', '审计日志',   'MENU',   0, '/system/audit',   'Memo',                 3),
+    ('system:dict:menu',  '字典管理',   'MENU',   0, '/system/dict',    'Collection',           4),
+    ('flightplan:create',     '计划创建', 'BUTTON', 0, '', '', 1),
+    ('flightplan:submit',     '计划提交', 'BUTTON', 0, '', '', 2),
+    ('flightplan:approve',    '计划审批', 'BUTTON', 0, '', '', 3),
+    ('flightplan:military',   '军事协调', 'BUTTON', 0, '', '', 4),
+    ('military:approve',      '军事批准', 'BUTTON', 0, '', '', 1),
+    ('alarm:suppress',        '告警抑制', 'BUTTON', 0, '', '', 1),
+    ('system:user:create',    '新增用户', 'BUTTON', 0, '', '', 1),
+    ('system:user:update',    '编辑用户', 'BUTTON', 0, '', '', 2),
+    ('system:user:delete',    '删除用户', 'BUTTON', 0, '', '', 3),
+    ('system:user:reset-pwd', '重置密码', 'BUTTON', 0, '', '', 4),
+    ('system:user:enable',    '启停用户', 'BUTTON', 0, '', '', 5),
+    ('system:role:create',    '新增角色', 'BUTTON', 0, '', '', 1),
+    ('system:role:update',    '编辑角色', 'BUTTON', 0, '', '', 2),
+    ('system:role:delete',    '删除角色', 'BUTTON', 0, '', '', 3),
+    ('system:role:assign',    '分配权限', 'BUTTON', 0, '', '', 4),
+    ('system:dict:manage',    '字典维护', 'BUTTON', 0, '', '', 1),
+    ('system:perm:manage',    '权限项维护', 'BUTTON', 0, '', '', 5)
+ON CONFLICT (perm_code) DO UPDATE SET
+    perm_name  = EXCLUDED.perm_name,
+    perm_type  = EXCLUDED.perm_type,
+    path       = EXCLUDED.path,
+    icon       = EXCLUDED.icon,
+    sort_order = EXCLUDED.sort_order;
+
+-- 系统管理子菜单挂到 system:menu 下
+UPDATE sys_permission child SET parent_id = parent.id
+FROM sys_permission parent
+WHERE parent.perm_code = 'system:menu'
+  AND child.perm_code IN ('system:user:menu','system:role:menu','system:audit:menu','system:dict:menu');
+
+-- 按钮权限挂到同域菜单下（flightplan:x → flightplan:menu、system:dict:manage → system:dict:menu 等）
+UPDATE sys_permission child SET parent_id = parent.id
+FROM sys_permission parent
+WHERE child.perm_type = 'BUTTON'
+  AND parent.perm_code = split_part(child.perm_code, ':', 1) || ':menu';
+
+-- =============================================================================
+-- 角色-权限映射种子（幂等）
+-- =============================================================================
+-- ADMIN：全部权限
+INSERT INTO sys_role_permission (role_code, perm_code)
+SELECT 'ADMIN', perm_code FROM sys_permission
+ON CONFLICT (role_code, perm_code) DO NOTHING;
+
+-- REGULATOR：业务菜单 + 审批类
+INSERT INTO sys_role_permission (role_code, perm_code) VALUES
+    ('REGULATOR','dashboard:menu'),('REGULATOR','monitor:menu'),('REGULATOR','replay:menu'),
+    ('REGULATOR','flightplan:menu'),('REGULATOR','flightplan:create'),('REGULATOR','flightplan:submit'),
+    ('REGULATOR','flightplan:approve'),
+    ('REGULATOR','airspace:menu'),('REGULATOR','airroute:menu'),('REGULATOR','airport:menu'),
+    ('REGULATOR','registry:menu'),('REGULATOR','pilot:menu'),
+    ('REGULATOR','alarm:menu'),('REGULATOR','violation:menu')
+ON CONFLICT (role_code, perm_code) DO NOTHING;
+
+-- OPERATOR：登记备案 / 计划创建提交类
+INSERT INTO sys_role_permission (role_code, perm_code) VALUES
+    ('OPERATOR','dashboard:menu'),('OPERATOR','monitor:menu'),('OPERATOR','replay:menu'),
+    ('OPERATOR','flightplan:menu'),('OPERATOR','flightplan:create'),('OPERATOR','flightplan:submit'),
+    ('OPERATOR','airspace:menu'),('OPERATOR','airroute:menu'),('OPERATOR','airport:menu'),
+    ('OPERATOR','registry:menu'),('OPERATOR','pilot:menu'),('OPERATOR','alarm:menu')
+ON CONFLICT (role_code, perm_code) DO NOTHING;
+
+-- MILITARY：军事调度 / 军事审批相关
+INSERT INTO sys_role_permission (role_code, perm_code) VALUES
+    ('MILITARY','dashboard:menu'),('MILITARY','monitor:menu'),('MILITARY','replay:menu'),
+    ('MILITARY','flightplan:menu'),('MILITARY','flightplan:military'),
+    ('MILITARY','military:menu'),('MILITARY','military:approve'),('MILITARY','alarm:menu')
+ON CONFLICT (role_code, perm_code) DO NOTHING;
+
+-- SUPERVISOR：只读业务菜单
+INSERT INTO sys_role_permission (role_code, perm_code) VALUES
+    ('SUPERVISOR','dashboard:menu'),('SUPERVISOR','monitor:menu'),('SUPERVISOR','replay:menu'),
+    ('SUPERVISOR','flightplan:menu'),('SUPERVISOR','airspace:menu'),('SUPERVISOR','airroute:menu'),
+    ('SUPERVISOR','airport:menu'),('SUPERVISOR','registry:menu'),('SUPERVISOR','pilot:menu'),
+    ('SUPERVISOR','alarm:menu'),('SUPERVISOR','violation:menu'),('SUPERVISOR','military:menu')
+ON CONFLICT (role_code, perm_code) DO NOTHING;
+
+-- PILOT：基础菜单 + 计划填报
+INSERT INTO sys_role_permission (role_code, perm_code) VALUES
+    ('PILOT','dashboard:menu'),('PILOT','flightplan:menu'),
+    ('PILOT','flightplan:create'),('PILOT','flightplan:submit'),('PILOT','alarm:menu')
+ON CONFLICT (role_code, perm_code) DO NOTHING;
 
 INSERT INTO sys_organization (org_name, org_code, parent_id, org_type) VALUES
 ('无人机监管中心','UAV-REG-001',0,'HEADQUARTER'),

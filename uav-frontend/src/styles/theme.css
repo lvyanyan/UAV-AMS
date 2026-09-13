@@ -1,60 +1,112 @@
 /* ============================================================
-   UAV-AMS 深色主题 —— 与大屏外壳一致的深海军蓝色系
-   基于 Element Plus 官方 dark css-vars 做色板覆盖 + 列表页公共样式
+   UAV-AMS 科技感深色主题 v2
+   品牌变量层（--uav-*）+ Element Plus dark 色板覆盖 + 公共版式
+   视觉语言：深空蓝黑底 · 青蓝辉光 · 玻璃拟态卡片 · 扫光网格
    ============================================================ */
 
+:root {
+  /* ---- 品牌色板 ---- */
+  --uav-primary: #2f81f7;          /* 科技蓝（主操作） */
+  --uav-cyan: #22d3ee;             /* 数据高亮青 */
+  --uav-cyan-soft: rgba(34, 211, 238, 0.14);
+  --uav-glow: 0 0 10px rgba(47, 129, 247, 0.45);
+  --uav-glow-strong: 0 0 16px rgba(34, 211, 238, 0.55);
+  --uav-danger: #f0524f;
+  --uav-warning: #f5a623;
+  --uav-success: #34d399;
+  --uav-grad-brand: linear-gradient(135deg, #2f81f7 0%, #22d3ee 100%);
+  --uav-grad-card: linear-gradient(180deg, rgba(47, 129, 247, 0.08), rgba(34, 211, 238, 0.02) 40%, transparent 70%);
+  --uav-panel-alpha: 0.72;         /* 玻璃卡片底透明度 */
+  --uav-radius: 12px;
+}
+
 html.dark {
-  /* 页面/容器背景 */
-  --el-bg-color-page: #0a111d;
-  --el-bg-color: #101a2c;
-  --el-bg-color-overlay: #15223a;
+  /* 页面/容器背景（更深更冷，衬托辉光） */
+  --el-bg-color-page: #060b14;
+  --el-bg-color: #0b1322;
+  --el-bg-color-overlay: #101b30;
 
   /* 填充（表格斑马纹、hover、输入底等） */
-  --el-fill-color-blank: #101a2c;
-  --el-fill-color-light: #182742;
-  --el-fill-color-lighter: #142036;
-  --el-fill-color-extra-light: #121d31;
-  --el-fill-color-dark: #1d2d4a;
-  --el-fill-color-darker: #22334f;
+  --el-fill-color-blank: #0b1322;
+  --el-fill-color-light: #16233c;
+  --el-fill-color-lighter: #121d33;
+  --el-fill-color-extra-light: #0f1a2d;
+  --el-fill-color-dark: #1c2c49;
+  --el-fill-color-darker: #223453;
 
   /* 边框 */
-  --el-border-color: #24344f;
-  --el-border-color-light: #1f2e47;
-  --el-border-color-lighter: #1b2942;
-  --el-border-color-extra-light: #17253c;
+  --el-border-color: #223350;
+  --el-border-color-light: #1d2c46;
+  --el-border-color-lighter: #192742;
+  --el-border-color-extra-light: #15223a;
 
   /* 文本 */
-  --el-text-color-primary: #e6edf8;
-  --el-text-color-regular: #c6d2e2;
-  --el-text-color-secondary: #93a4bd;
-  --el-text-color-placeholder: #5f7189;
-  --el-text-color-disabled: #4c5c73;
+  --el-text-color-primary: #e8f0fb;
+  --el-text-color-regular: #c8d5e6;
+  --el-text-color-secondary: #8fa1bc;
+  --el-text-color-placeholder: #5b6d86;
+  --el-text-color-disabled: #495971;
 
-  --el-mask-color: rgba(4, 9, 17, 0.75);
+  --el-mask-color: rgba(3, 7, 14, 0.78);
+
+  /* 品牌主色注入 Element Plus */
+  --el-color-primary: #2f81f7;
+  --el-color-primary-dark-2: #2568c5;
+  --el-color-primary-light-3: #5c9cf9;
+  --el-color-primary-light-5: #87b8fb;
+  --el-color-primary-light-7: #1d3d6e;
+  --el-color-primary-light-8: #16325c;
+  --el-color-primary-light-9: #122a4d;
+  --el-color-primary-rgb: 47, 129, 247;
 
   color-scheme: dark;
 }
 
 html.dark body {
   margin: 0;
-  background: var(--el-bg-color-page);
   color: var(--el-text-color-primary);
+  font-variant-numeric: tabular-nums;
+  /* 深空底色 + 顶部青蓝光晕 + 极淡网格，全站统一背景语言 */
+  background:
+    radial-gradient(1100px 460px at 18% -8%, rgba(47, 129, 247, 0.13), transparent 62%),
+    radial-gradient(900px 420px at 88% -12%, rgba(34, 211, 238, 0.09), transparent 60%),
+    linear-gradient(rgba(56, 189, 248, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.028) 1px, transparent 1px),
+    var(--el-bg-color-page);
+  background-size: auto, auto, 44px 44px, 44px 44px, auto;
+  background-attachment: fixed;
 }
 
-/* ---------- 表格细节：透明底 / 斑马纹 / 悬浮高亮 ---------- */
+/* ---------- 滚动条 ---------- */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb {
+  background: #24365a;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #2f81f7aa; background-clip: content-box; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ---------- 表格细节：玻璃底 / 渐变表头 / 悬浮高亮 ---------- */
 html.dark .el-table {
   --el-table-border-color: var(--el-border-color-lighter);
-  --el-table-header-bg-color: #142036;
-  --el-table-header-text-color: #a9bad3;
-  --el-table-row-hover-bg-color: #1d2d4a;
+  --el-table-header-bg-color: transparent;
+  --el-table-header-text-color: #9fb4d2;
+  --el-table-row-hover-bg-color: rgba(47, 129, 247, 0.10);
   background: transparent;
+  --el-table-header-text-font-weight: 600;
+}
+html.dark .el-table th.el-table__cell {
+  background: linear-gradient(180deg, rgba(47, 129, 247, 0.10), rgba(47, 129, 247, 0.03));
+  letter-spacing: 0.5px;
 }
 html.dark .el-table tr,
 html.dark .el-table td.el-table__cell {
   background: transparent;
 }
 html.dark .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
-  background: #121d31;
+  background: rgba(255, 255, 255, 0.015);
 }
 html.dark .el-table__inner-wrapper::before {
   background-color: var(--el-border-color-lighter);
@@ -66,9 +118,47 @@ html.dark .el-pagination {
   --el-pagination-button-disabled-bg-color: transparent;
 }
 
+/* 对话框 / 消息框：玻璃拟态 + 顶部品牌描边 */
+html.dark .el-dialog,
+html.dark .el-message-box {
+  background: linear-gradient(180deg, rgba(16, 27, 48, 0.96), rgba(11, 19, 34, 0.98));
+  border: 1px solid rgba(47, 129, 247, 0.28);
+  border-top: 1px solid rgba(34, 211, 238, 0.45);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), var(--uav-glow);
+  backdrop-filter: blur(14px);
+}
+html.dark .el-dialog__title { font-weight: 600; letter-spacing: 0.5px; }
+html.dark .el-overlay { backdrop-filter: blur(3px); }
+
+/* 下拉 / 浮层 */
+html.dark .el-popper.is-light {
+  background: var(--el-bg-color-overlay);
+  border: 1px solid var(--el-border-color);
+}
+
+/* 输入控件聚焦辉光 */
+html.dark .el-input__wrapper.is-focus,
+html.dark .el-textarea__inner:focus,
+html.dark .el-select__wrapper.is-focused {
+  box-shadow: 0 0 0 1px var(--el-color-primary) inset, 0 0 10px rgba(47, 129, 247, 0.28);
+}
+
+/* 主按钮辉光 */
+html.dark .el-button--primary:not(.is-disabled) {
+  box-shadow: 0 0 0 rgba(47, 129, 247, 0);
+  transition: box-shadow 0.25s ease, transform 0.15s ease;
+}
+html.dark .el-button--primary:not(.is-disabled):hover {
+  box-shadow: var(--uav-glow);
+}
+html.dark .el-button--primary:not(.is-disabled):active { transform: translateY(1px); }
+
+/* 标签微辉光 */
+html.dark .el-tag { backdrop-filter: blur(4px); }
+
 /* ---------- 列表页公共版式（各页面直接套用类名） ---------- */
 .page-container {
-  padding: 20px;
+  padding: 20px 22px;
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;
@@ -85,26 +175,31 @@ html.dark .el-pagination {
 .page-title {
   margin: 0;
   font-size: 22px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
+  font-weight: 700;
+  letter-spacing: 1px;
   display: flex;
   align-items: center;
   gap: 10px;
-  letter-spacing: 0.5px;
+  background: linear-gradient(100deg, #eaf3ff 20%, #7cc7ff 55%, #22d3ee 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 .page-title::before {
   content: '';
   width: 4px;
   height: 20px;
   border-radius: 2px;
-  background: var(--el-color-primary);
-  box-shadow: 0 0 8px rgba(64, 158, 255, 0.6);
+  background: var(--uav-grad-brand);
+  box-shadow: var(--uav-glow-strong);
+  flex-shrink: 0;
 }
 
 .page-subtitle {
   margin-top: 6px;
   font-size: 13px;
   color: var(--el-text-color-secondary);
+  letter-spacing: 0.3px;
 }
 
 .header-actions {
@@ -114,12 +209,20 @@ html.dark .el-pagination {
   flex-shrink: 0;
 }
 
-/* 表格卡片：圆角描边 + 内边距收敛 */
+/* 表格卡片：玻璃拟态 + 顶部品牌高光 + 悬停辉光 */
 .table-card {
-  border-radius: 10px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-bg-color);
-  --el-card-border-color: var(--el-border-color-lighter);
+  position: relative;
+  border-radius: var(--uav-radius);
+  border: 1px solid rgba(47, 129, 247, 0.18);
+  background: linear-gradient(180deg, rgba(18, 30, 52, var(--uav-panel-alpha)), rgba(11, 19, 34, var(--uav-panel-alpha)));
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(124, 199, 255, 0.08);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  --el-card-border-color: transparent;
+}
+.table-card:hover {
+  border-color: rgba(47, 129, 247, 0.42);
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.4), 0 0 18px rgba(47, 129, 247, 0.16);
 }
 .table-card .el-card__body {
   padding: 12px;
@@ -129,4 +232,30 @@ html.dark .el-pagination {
   display: flex;
   justify-content: flex-end;
   padding-top: 12px;
+}
+
+/* ---------- 通用工具类 ---------- */
+/* 科技面板四角描边装饰（Dashboard 指标卡、监控面板可用） */
+.uav-corners { position: relative; }
+.uav-corners::before,
+.uav-corners::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+}
+.uav-corners::before {
+  top: -1px; left: -1px;
+  border-top: 2px solid var(--uav-cyan);
+  border-left: 2px solid var(--uav-cyan);
+  border-top-left-radius: 4px;
+  opacity: 0.75;
+}
+.uav-corners::after {
+  bottom: -1px; right: -1px;
+  border-bottom: 2px solid var(--uav-cyan);
+  border-right: 2px solid var(--uav-cyan);
+  border-bottom-right-radius: 4px;
+  opacity: 0.75;
 }

@@ -77,6 +77,8 @@ public class DictInitializer implements CommandLineRunner {
         row("alarm_type", "WEATHER", "气象风险", 9),
         row("alarm_type", "EQUIPMENT", "设备异常", 10),
         row("alarm_type", "TERRAIN", "地形风险", 11),
+        row("alarm_type", "LICENSE_EXPIRE", "执照到期", 12),
+        row("alarm_type", "MEDICAL_EXPIRE", "体检到期", 13),
 
         row("user_role", "ADMIN", "系统管理员", 1),
         row("user_role", "REGULATOR", "监管员", 2),

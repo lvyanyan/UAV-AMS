@@ -13,12 +13,16 @@ import java.util.List;
  * 陈旧告警自动关闭：OPEN 超过 staleMinutes 的告警视为失效自动关闭，
  * 防止历史积压把活跃告警淹没（无人机下次命中会重新开启新记录）。
  * 启动时先清理一次存量，随后每 60s 增量清扫。
+ * 资质类告警（执照/体检到期）是持续状态而非瞬态事件，不参与陈旧关闭——
+ * 由 QualificationExpireRunner 在条件恢复时关闭。
  */
 @Component
 public class AlarmStaleCloseRunner implements CommandLineRunner {
 
     private static final Logger log = LoggerFactory.getLogger(AlarmStaleCloseRunner.class);
     private static final int STALE_MINUTES = 30;
+    /** 持续状态类告警：不随时间陈旧，仅在条件恢复时由对应 Runner 关闭 */
+    private static final String PERSISTENT_TYPES = "('LICENSE_EXPIRE','MEDICAL_EXPIRE')";
 
     private final JdbcTemplate jdbc;
     private final com.uav.alarm.core.AlarmOpenStateStore openStore;
@@ -35,12 +39,14 @@ public class AlarmStaleCloseRunner implements CommandLineRunner {
                 try {
                     List<String> keys = jdbc.queryForList(
                         "select distinct drone_sn || '|' || alarm_type from alarm_record "
-                      + "where status = 'OPEN' and create_time < now() - interval '" + STALE_MINUTES + " minutes'",
+                      + "where status = 'OPEN' and create_time < now() - interval '" + STALE_MINUTES + " minutes' "
+                      + "and alarm_type not in " + PERSISTENT_TYPES,
                         String.class);
                     if (!keys.isEmpty()) {
                         int n = jdbc.update(
                             "update alarm_record set status = 'CLOSED', closed_time = now() "
-                          + "where status = 'OPEN' and create_time < now() - interval '" + STALE_MINUTES + " minutes'");
+                          + "where status = 'OPEN' and create_time < now() - interval '" + STALE_MINUTES + " minutes' "
+                          + "and alarm_type not in " + PERSISTENT_TYPES);
                         keys.forEach(openStore::evictKey);
                         if (n > 0) log.info("陈旧告警自动关闭 {} 条", n);
                     }

@@ -2,25 +2,25 @@
   <div class="flight-monitor">
     <div ref="cesiumContainer" class="cesium-container" />
     <div class="top-stats">
-      <span>在线: {{ droneCount.toLocaleString() }}</span>
-      <span>告警: {{ alarmCount }}</span>
-      <span v-if="mode === 'standard'">🚁 LOD层: {{ currentLevel }}</span>
-      <span v-else>百万模式 · {{ millionFrameMode }}</span>
+      <span>{{ $t('monitor.online') }}: {{ droneCount.toLocaleString() }}</span>
+      <span>{{ $t('monitor.alarms') }}: {{ alarmCount }}</span>
+      <span v-if="mode === 'standard'">🚁 {{ $t('monitor.lodLevel') }}: {{ currentLevel }}</span>
+      <span v-else>{{ $t('monitor.millionMode') }} · {{ $t(millionFrameMode) }}</span>
     </div>
     <div class="toolbar">
       <button @click="toggleMode" :disabled="switching" :class="{ active: mode === 'million' }">
-        <el-icon><Promotion /></el-icon>
-        {{ mode === 'million' ? '返回标准模式' : '百万模式' }}
+        <img class="tb-ic" src="@/assets/icons/ic-rocket.png" alt="" />
+        {{ mode === 'million' ? $t('monitor.backStandard') : $t('monitor.millionMode') }}
       </button>
       <div v-if="mode === 'million'" class="scale-group">
-        <button v-for="s in SCALES" :key="s.count" :class="{ active: fleetScale === s.count }" @click="setScale(s.count)">{{ s.label }}</button>
+        <button v-for="s in SCALES" :key="s.count" :class="{ active: fleetScale === s.count }" @click="setScale(s.count)">{{ $t(s.label) }}</button>
       </div>
-      <button @click="toggleAirspace">{{ showAirspace ? '隐藏' : '显示' }}空域</button>
-      <button @click="toggleFps">FPS</button>
-      <button :class="{ active: activePanel === '空域' }" @click="togglePanel('空域')">空域</button>
-      <button :class="{ active: activePanel === '航路' }" @click="togglePanel('航路')">航路</button>
-      <button :class="{ active: activePanel === '起降场' }" @click="togglePanel('起降场')">起降场</button>
-      <button :class="{ active: activePanel === 'suppress' }" @click="togglePanel('suppress')">抑制</button>
+      <button @click="toggleAirspace"><img class="tb-ic" src="@/assets/icons/ic-polygon.png" alt="" />{{ showAirspace ? $t('monitor.hideAirspace') : $t('monitor.showAirspace') }}</button>
+      <button @click="toggleFps"><img class="tb-ic" src="@/assets/icons/ic-gauge.png" alt="" />FPS</button>
+      <button :class="{ active: activePanel === 'airspace' }" @click="togglePanel('airspace')"><img class="tb-ic" src="@/assets/icons/ic-polygon.png" alt="" />{{ $t('monitor.panel.airspace') }}</button>
+      <button :class="{ active: activePanel === 'route' }" @click="togglePanel('route')"><img class="tb-ic" src="@/assets/icons/ic-route.png" alt="" />{{ $t('monitor.panel.route') }}</button>
+      <button :class="{ active: activePanel === 'airport' }" @click="togglePanel('airport')"><img class="tb-ic" src="@/assets/icons/ic-tower.png" alt="" />{{ $t('monitor.panel.airport') }}</button>
+      <button :class="{ active: activePanel === 'suppress' }" @click="togglePanel('suppress')"><img class="tb-ic" src="@/assets/icons/ic-funnel.png" alt="" />{{ $t('monitor.panel.suppress') }}</button>
     </div>
     <!-- 图层 / 消息重放 / 告警抑制 面板 -->
     <div v-if="activePanel" class="side-panel">
@@ -29,77 +29,78 @@
         <el-icon class="sp-close" @click="activePanel = null"><Close /></el-icon>
       </div>
       <div class="sp-body">
-        <template v-if="['空域', '航路', '起降场'].includes(activePanel)">
-          <el-input v-model="layerFilter" placeholder="按名称过滤" size="small" clearable style="margin-bottom:8px" />
+        <template v-if="['airspace', 'route', 'airport'].includes(activePanel)">
+          <el-input v-model="layerFilter" :placeholder="$t('monitor.filterByName')" size="small" clearable style="margin-bottom:8px" />
           <div v-for="g in layerGroups" :key="g.name" class="layer-group">
             <div class="lg-title">
               <label class="layer-item" style="padding:0 2px">
                 <input type="checkbox" :checked="groupAllChecked(g)" @change="toggleGroup(g, $event.target.checked)" />
-                <b>{{ g.name }}</b>
+                <b>{{ $t('monitor.panel.' + g.name) }}</b>
               </label>
             </div>
             <label v-for="it in g.items" :key="it.key" class="layer-item">
               <input type="checkbox" v-model="it.visible" @change="renderOverlays" />
-              <span class="layer-name" :class="{ nofly: it.kind === 'no_fly' }">{{ it.label }}</span>
+              <span class="layer-name" :class="{ nofly: it.kind === 'no_fly' }">{{ it.label() }}</span>
             </label>
           </div>
-          <div v-if="!layerGroups.length" class="empty-hint">暂无空域/航路/起降场数据</div>
+          <div v-if="!layerGroups.length" class="empty-hint">{{ $t('monitor.noLayerData') }}</div>
         </template>
         <template v-else-if="activePanel === 'suppress'">
           <div class="empty-hint">
-            已配置规则：类型 {{ suppressCount.types }} · 级别 {{ suppressCount.levels }} · SN {{ suppressCount.sns }}
+            {{ $t('monitor.suppressSummary', suppressCount) }}
           </div>
-          <el-button type="primary" size="small" style="width:100%;margin-top:8px" @click="suppressOpen = true">配置抑制规则</el-button>
+          <el-button type="primary" size="small" style="width:100%;margin-top:8px" @click="suppressOpen = true">{{ $t('monitor.configSuppress') }}</el-button>
         </template>
       </div>
     </div>
     <div v-if="showFps" class="fps-overlay">{{ fpsText }}</div>
-    <div v-if="showDropped" class="drop-overlay">丢弃过时帧 {{ millionDropped }}（Worker 解析积压，已自动只处理最新帧）</div>
+    <div v-if="showDropped" class="drop-overlay">{{ $t('monitor.dropped', { n: millionDropped }) }}</div>
     <AlertPanel :alerts="alertList" @focus="focusAlarm" @clear="alertList = []" />
     <!-- 百万模式：点击聚合点/原始点出现的简化标牌 -->
     <div v-if="millionLabel.visible" class="drone-label" :style="{ left: millionLabel.x + 'px', top: millionLabel.y + 'px' }" @click.stop>
-      <div class="dl-head"><span class="dl-sn">机群目标 #{{ millionLabel.index }}</span><span class="dl-close" @click="closeMillionLabel">✕</span></div>
-      <div class="dl-row"><span class="dl-k">经度</span><span>{{ millionLabel.lon }}</span></div>
-      <div class="dl-row"><span class="dl-k">纬度</span><span>{{ millionLabel.lat }}</span></div>
-      <div class="dl-row"><span class="dl-k">高度</span><span>{{ millionLabel.alt }} m</span></div>
-      <div class="dl-row"><span class="dl-k">告警</span><span :class="'alv-' + millionLabel.alertClass">{{ millionLabel.alertText }}</span></div>
+      <div class="dl-head"><span class="dl-sn">{{ $t('monitor.fleetTarget', { n: millionLabel.index }) }}</span><span class="dl-close" @click="closeMillionLabel">✕</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.lon') }}</span><span>{{ millionLabel.lon }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.lat') }}</span><span>{{ millionLabel.lat }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.alt') }}</span><span>{{ millionLabel.alt }} m</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.alert') }}</span><span :class="'alv-' + millionLabel.alertClass">{{ dt(millionLabel.alertText) }}</span></div>
     </div>
     <!-- 点击无人机出现的 DOM 标牌 -->
     <div v-if="label.visible" class="drone-label" :style="{ left: label.x + 'px', top: label.y + 'px' }" @click.stop>
       <div class="dl-head"><span class="dl-sn">{{ label.sn }}</span><span class="dl-close" @click="closeLabel">✕</span></div>
-      <div class="dl-row"><span class="dl-k">航向</span><span>{{ label.heading }}°</span></div>
-      <div class="dl-row"><span class="dl-k">告警</span><span :class="'alv-' + label.alertLevel">{{ label.alertText }}</span></div>
-      <div class="dl-row"><span class="dl-k">计划编号</span><span>{{ label.planCode }}</span></div>
-      <div class="dl-row"><span class="dl-k">任务性质</span><span>{{ label.purpose }}</span></div>
-      <div class="dl-row"><span class="dl-k">运营主体</span><span>{{ label.operator }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.heading') }}</span><span>{{ label.heading }}°</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.phase') }}</span><span class="dl-phase">{{ phaseText(label.phase) }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.alert') }}</span><span :class="'alv-' + label.alertLevel">{{ dt(label.alertText) }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.planNo') }}</span><span>{{ label.planCode }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.purpose') }}</span><span>{{ label.purpose }}</span></div>
+      <div class="dl-row"><span class="dl-k">{{ $t('monitor.operator') }}</span><span>{{ label.operator }}</span></div>
     </div>
       <!-- 告警抑制配置（弹出面板） -->
-    <el-dialog v-model="suppressOpen" title="告警抑制规则" width="560px" @open="loadSuppressRules">
+    <el-dialog v-model="suppressOpen" :title="$t('monitor.suppressTitle')" width="560px" @open="loadSuppressRules">
       <div class="suppress-group">
-        <div class="suppress-group-title">按告警类型（勾选即生效）</div>
+        <div class="suppress-group-title">{{ $t('monitor.byType') }}</div>
         <el-checkbox-group :model-value="checkedTypes" @update:model-value="setTypes">
           <el-checkbox-button v-for="d in alarmTypeItems" :key="d.value" :value="d.value">{{ d.label }}</el-checkbox-button>
         </el-checkbox-group>
       </div>
       <div class="suppress-group">
-        <div class="suppress-group-title">按级别</div>
+        <div class="suppress-group-title">{{ $t('monitor.byLevel') }}</div>
         <el-checkbox-group :model-value="checkedLevels" @update:model-value="setLevels">
           <el-checkbox-button v-for="d in alarmLevelItems" :key="d.value" :value="d.value">{{ d.label }}</el-checkbox-button>
         </el-checkbox-group>
       </div>
       <div class="suppress-group">
-        <div class="suppress-group-title">按无人机 SN</div>
+        <div class="suppress-group-title">{{ $t('monitor.bySn') }}</div>
         <div style="display:flex;gap:8px;margin-bottom:8px">
-          <el-input v-model="newSn" size="small" placeholder="输入SN后回车添加" @keyup.enter="addSn" />
-          <el-button size="small" @click="addSn">添加</el-button>
+          <el-input v-model="newSn" size="small" :placeholder="$t('monitor.snPlaceholder')" @keyup="onSnKeyup" />
+          <el-button size="small" @click="addSn">{{ $t('common.add') }}</el-button>
         </div>
         <div class="sn-tags">
           <el-tag v-for="r in snRules" :key="r.id" closable size="small" style="margin:0 6px 6px 0" @close="removeSuppressRule({ droneSn: r.droneSn })">{{ r.droneSn }}</el-tag>
-          <span v-if="!snRules.length" style="color:var(--el-text-color-secondary);font-size:12px">未指定</span>
+          <span v-if="!snRules.length" style="color:var(--el-text-color-secondary);font-size:12px">{{ $t('common.none') }}</span>
         </div>
       </div>
       <div style="color:var(--el-text-color-secondary);font-size:12px">
-        规则由服务端记录并在告警生成侧过滤：命中的告警不再推送、不再落库。
+        {{ $t('monitor.suppressNote') }}
       </div>
     </el-dialog>
   </div>
@@ -107,19 +108,23 @@
 
 <script setup>
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as Cesium from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { CESIUM_CONFIG } from '@/config/cesiumConfig.js'
 import { useLodDroneRenderer } from '@/composables/useLodDroneRenderer.js'
 import { useMillionRenderer } from '@/composables/useMillionRenderer.js'
 import AlertPanel from '@/components/AlertPanel.vue'
+import { wsClient } from '@/api/websocket'
 import { ElMessage } from 'element-plus'
 import { useDict } from '@/composables/useDict'
+import { locale } from '@/locales'
 import { useUserStore } from '@/stores/user'
 import { airspaceApi } from '@/api/airspace'
 import { routeApi } from '@/api/route'
 import { airportApi } from '@/api/airport'
 
+const { t, te } = useI18n()
 const cesiumContainer = ref(null)
 const viewerRef = shallowRef(null)
 const droneCount = ref(0)
@@ -133,16 +138,16 @@ const alertList = ref([])
 // ── 百万模式状态 ──
 const FLEET_PORT = 8091
 const SCALES = [
-  { label: '10万', count: 100000 },
-  { label: '50万', count: 500000 },
-  { label: '100万', count: 1000000 },
+  { label: 'monitor.scale.100k', count: 100000 },
+  { label: 'monitor.scale.500k', count: 500000 },
+  { label: 'monitor.scale.1m', count: 1000000 },
 ]
 const mode = ref('standard')            // 'standard' | 'million'
 const switching = ref(false)            // 切换中禁用按钮，防止两个渲染器半初始化
-const millionFrameMode = ref('连接中')   // 聚合 | 原始 | 连接中 | 断开
+const millionFrameMode = ref('monitor.frame.connecting')   // 聚合 | 原始 | 连接中 | 断开（i18n key）
 const millionDropped = ref(0)
 const fleetScale = ref(0)               // 当前机群规模（/stats 轮询回填，命中 SCALES 才亮）
-const millionLabel = ref({ visible: false, x: 0, y: 0, index: -1, lon: '--', lat: '--', alt: '--', alertClass: 'NONE', alertText: '无' })
+const millionLabel = ref({ visible: false, x: 0, y: 0, index: -1, lon: '--', lat: '--', alt: '--', alertClass: 'NONE', alertText: 'monitor.alertLevel.NONE' })
 const showDropped = ref(false)
 let dropHideTimer = null
 
@@ -153,17 +158,22 @@ const { items: directionItems, label: directionLabel } = useDict('route_directio
 
 const userStore = useUserStore()
 const activePanel = ref(null)
-const panelTitle = computed(() => ({ '空域': '空域图层', '航路': '航路图层', '起降场': '起降场图层', suppress: '告警抑制' }[activePanel.value] || ''))
+const panelTitle = computed(() => ({
+  airspace: t('monitor.panelTitle.airspace'),
+  route: t('monitor.panelTitle.route'),
+  airport: t('monitor.panelTitle.airport'),
+  suppress: t('monitor.suppressTitle'),
+}[activePanel.value] || ''))
 function togglePanel(name) { activePanel.value = activePanel.value === name ? null : name }
 
 const airspaceList = ref([])
 const routeList = ref([])
 const airportList = ref([])
-const layerItems = ref([])   // { group, key, id, label, kind, visible, data }
+const layerItems = ref([])   // { group, key, id, label(), kind, visible, data }
 
 const layerFilter = ref('')
 const layerGroups = computed(() => {
-  if (!['空域', '航路', '起降场'].includes(activePanel.value)) return []
+  if (!['airspace', 'route', 'airport'].includes(activePanel.value)) return []
   const items = layerItems.value.filter(i => i.group === activePanel.value)
   return items.length ? [{ name: activePanel.value, items }] : []
 })
@@ -178,7 +188,7 @@ function renderOverlays() {
   for (const it of layerItems.value) {
     if (!it.visible) continue
     try {
-      if (it.group === '空域') {
+      if (it.group === 'airspace') {
         const ring = JSON.parse(it.data.geoJson).coordinates[0]
         overlayEntities.push(viewer.entities.add({
           polygon: {
@@ -194,7 +204,7 @@ function renderOverlays() {
           label: { text: it.data.airspaceName, font: '12px sans-serif', fillColor: Cesium.Color.WHITE,
                    pixelOffset: new Cesium.Cartesian2(0, -10), disableDepthTestDistance: Number.POSITIVE_INFINITY },
         }))
-      } else if (it.group === '航路') {
+      } else if (it.group === 'route') {
         const wp = JSON.parse(it.data.waypoints || '[]')
         if (wp.length >= 2) {
           overlayEntities.push(viewer.entities.add({
@@ -206,7 +216,7 @@ function renderOverlays() {
           position: Cesium.Cartesian3.fromDegrees(pnt[0], pnt[1]),
           point: { pixelSize: 8, color: Cesium.Color.ORANGE },
         })))
-      } else if (it.group === '起降场') {
+      } else if (it.group === 'airport') {
         overlayEntities.push(viewer.entities.add({
           position: Cesium.Cartesian3.fromDegrees(it.data.lon, it.data.lat),
           point: { pixelSize: 12, color: Cesium.Color.LIME, outlineColor: Cesium.Color.BLACK, outlineWidth: 1 },
@@ -227,17 +237,17 @@ async function loadLayers() {
     const items = []
     for (const a of airspaceList.value) {
       if (!a.geoJson) continue
-      items.push({ group: '空域', key: 'a' + a.id, id: a.id, data: a,
-                   label: a.airspaceName + '（' + typeLabel(a.airspaceType) + '）',
+      items.push({ group: 'airspace', key: 'a' + a.id, id: a.id, data: a,
+                   label: () => `${a.airspaceName}（${typeLabel(a.airspaceType)}）`,
                    kind: ['NO_FLY', 'TEMP_NO_FLY'].includes(a.airspaceType) ? 'no_fly' : '', visible: false })
     }
     for (const r of routeList.value) {
-      items.push({ group: '航路', key: 'r' + r.id, id: r.id, data: r,
-                   label: r.routeName + '（' + directionLabel(r.direction) + '）', kind: '', visible: false })
+      items.push({ group: 'route', key: 'r' + r.id, id: r.id, data: r,
+                   label: () => `${r.routeName}（${directionLabel(r.direction)}）`, kind: '', visible: false })
     }
     for (const ap of airportList.value) {
-      items.push({ group: '起降场', key: 'p' + ap.id, id: ap.id, data: ap,
-                   label: ap.airportName + '（' + typeLabel(ap.airportType) + '）', kind: '', visible: false })
+      items.push({ group: 'airport', key: 'p' + ap.id, id: ap.id, data: ap,
+                   label: () => `${ap.airportName}（${typeLabel(ap.airportType)}）`, kind: '', visible: false })
     }
     layerItems.value = items
     renderOverlays()
@@ -273,7 +283,7 @@ async function replayActiveAlarms() {
       meta.alertText = levelLabel(a.alarmLevel) + ' · ' + typeLabel(a.alarmType)
       droneMeta.set(sn, meta)
       const slot = droneMap.get(sn)
-      if (slot !== undefined) renderer.setAlertLevel(slot, a.alarmLevel)
+      if (slot !== undefined) renderer.setAlertLevel(slot, a.alarmLevel, a.alarmType)
     }
   } catch (e) {}
 }
@@ -288,11 +298,44 @@ const suppressCount = computed(() => ({
   levels: new Set(suppressRules.value.filter(r => r.alarmLevel).map(r => r.alarmLevel)).size,
   sns: new Set(suppressRules.value.filter(r => r.droneSn).map(r => r.droneSn)).size,
 }))
+const checkedTypes = computed(() => [...new Set(suppressRules.value.filter(r => r.alarmType).map(r => r.alarmType))])
+const checkedLevels = computed(() => [...new Set(suppressRules.value.filter(r => r.alarmLevel).map(r => r.alarmLevel))])
+const snRules = computed(() => suppressRules.value.filter(r => r.droneSn))
+function setTypes(list) {
+  for (const v of list) if (!checkedTypes.value.includes(v)) addSuppressRule({ alarmType: v })
+  for (const v of checkedTypes.value) if (!list.includes(v)) removeSuppressRule({ alarmType: v })
+}
+function setLevels(list) {
+  for (const v of list) if (!checkedLevels.value.includes(v)) addSuppressRule({ alarmLevel: v })
+  for (const v of checkedLevels.value) if (!list.includes(v)) removeSuppressRule({ alarmLevel: v })
+}
+function addSn() {
+  const v = newSn.value.trim()
+  if (v) { addSuppressRule({ droneSn: v }); newSn.value = '' }
+}
+// 手写 Enter 判断：withKeys 修饰符在 vite 预构建 chunk 下可能拿到 undefined 处理器
+function onSnKeyup(e) {
+  if (e && e.key === 'Enter') addSn()
+}
 async function loadSuppressRules() {
   try {
     const res = await fetch('http://localhost:18080/api/alarm/suppress?userId=' + encodeURIComponent(userStore.username))
     suppressRules.value = (await res.json()).data || []
   } catch (e) {}
+  syncAlarmSubscription()
+}
+
+// 告警抑制规则同步到 WS 订阅（推送侧过滤），与告警引擎生成侧落库过滤双保险
+function syncAlarmSubscription() {
+  const uniq = (k) => [...new Set(suppressRules.value.filter(r => r[k]).map(r => r[k]))]
+  wsClient.subscribe({
+    alarm: {
+      excludeTypes: uniq('alarmType'),
+      excludeLevels: uniq('alarmLevel'),
+      excludeSns: uniq('droneSn'),
+    },
+    batch: true,
+  })
 }
 async function addSuppressRule(rule) {
   await fetch('http://localhost:18080/api/alarm/suppress', {
@@ -318,8 +361,6 @@ watch(millionDropped, (v) => {
 })
 
 let viewer = null
-let ws = null
-let wsReconnectTimer = null
 let statsTimer = null
 let labelTimer = null
 let airspaceEntities = []
@@ -329,12 +370,21 @@ const droneMeta = new Map()       // SN → { heading, alertLevel, alertType, al
 const planByDrone = new Map()     // drone_sn → 飞行计划（plan_code / flight_purpose）
 const ownerByDrone = new Map()    // drone_sn → 运营主体名称
 
-// 点击标牌状态
+// 点击标牌状态（alertText 为 i18n key，渲染处 $t 翻译）
 const label = ref({
   visible: false, x: 0, y: 0, sn: '--',
-  heading: '--', alertLevel: 'NONE', alertText: '无',
-  planCode: '无', purpose: '无计划飞行', operator: '--'
+  heading: '--', phase: 'FLYING',
+  alertLevel: 'NONE', alertText: 'monitor.alertLevel.NONE',
+  planCode: '--', purpose: '', operator: '--'
 })
+
+// 飞行阶段 → 展示文案（未知阶段原样透出，便于发现漏维护的枚举）
+function phaseText(p) {
+  const key = 'monitor.phaseText.' + (p || 'FLYING')
+  return te(key) ? t(key) : (p || t('monitor.phaseText.FLYING'))
+}
+// 动态展示翻译：是 i18n key 就翻译，否则原样返回（如运行期拼接的告警文案）
+function dt(key) { return te(key) ? t(key) : key }
 
 const renderer = useLodDroneRenderer(viewerRef)
 const millionRenderer = useMillionRenderer(viewerRef)
@@ -387,22 +437,36 @@ function initMap() {
   }))
   if (viewer.scene.fog) viewer.scene.fog.enabled = false
   if (viewer.scene.skyAtmosphere) viewer.scene.skyAtmosphere.show = false
-  viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(116.397, 39.908, 15000), orientation: { heading: 0, pitch: Cesium.Math.toRadians(-30), roll: 0 } })
+  // 俯视机位：视锥上报按此矩形裁剪遥测，倾斜视角会把足迹推到机群以北导致"在线: 0"
+  viewer.camera.setView({ destination: Cesium.Cartesian3.fromDegrees(116.35, 39.75, 60000), orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 } })
 }
 
-// ── WebSocket ──
+// ── WebSocket（v2 订阅：视锥裁剪 + 告警抑制 + 遥测合帧，服务端按会话过滤）──
+let unsubscribeWs = null
+let offWsStatus = null
+let lastWsMsgAt = 0   // 最近一次收到 WS 消息的时间，用于自愈检测
+
 function connectWebSocket() {
-  if (ws && ws.readyState === WebSocket.OPEN) return
-  ws = new WebSocket('ws://localhost:8090/ws')
-  ws.onopen = () => console.log('✅ WebSocket :8090')
-  ws.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data)
-      if (msg.type === 'telemetry' && msg.data) onTelemetry(msg.data)
-      else if (msg.type === 'uav.alarm.event' && msg.data) onAlarmEvent(msg.data)
-    } catch (_) {}
-  }
-  ws.onclose = () => { wsReconnectTimer = setTimeout(connectWebSocket, 2000) }
+  if (unsubscribeWs) return
+  lastWsMsgAt = Date.now()
+  unsubscribeWs = wsClient.onMessage((type, data) => {
+    lastWsMsgAt = Date.now()
+    if (type === 'telemetry' && data) {
+      onTelemetry(data)
+    } else if (type === 'telemetry-batch' && Array.isArray(data)) {
+      // 服务端 batch item 是完整信封 {type:'telemetry', data:{...}}，需解包再喂遥测
+      for (const d of data) onTelemetry(d && d.data !== undefined ? d.data : d)
+    } else if (type === 'uav.alarm.event' && data) {
+      onAlarmEvent(data)
+    } else if (type === 'subscribe-ack') {
+      console.log('[FlightMonitor] 服务端订阅生效:', data)
+    }
+  })
+  // 重连成功后补发订阅条件（视锥 + 抑制规则），避免服务端会话状态丢失
+  offWsStatus = wsClient.onStatus((ok) => {
+    if (ok) { sendViewport(true); syncAlarmSubscription() }
+  })
+  wsClient.connect()
 }
 
 // ══ 百万模式：二进制聚合通道（uav-realtime :8091/fleet）══
@@ -421,13 +485,13 @@ function connectFleetWs() {
   fleetWs = new WebSocket(`ws://localhost:${FLEET_PORT}/fleet`)
   fleetWs.binaryType = 'arraybuffer'
   fleetWs.onopen = () => {
-    millionFrameMode.value = '聚合'
+    millionFrameMode.value = 'monitor.frame.cell'
     clearTimeout(fleetWsReconnectTimer)
     sendViewport(true)
   }
   fleetWs.onclose = () => {
     if (mode.value !== 'million') return
-    millionFrameMode.value = '断开'
+    millionFrameMode.value = 'monitor.frame.off'
     fleetWsReconnectTimer = setTimeout(connectFleetWs, 3000)
   }
   fleetWs.onerror = () => fleetWs && fleetWs.close()
@@ -438,22 +502,26 @@ function connectFleetWs() {
   }
 }
 
-// 相机变动 → 上报视锥（服务端按视野聚合/裁剪），200ms 节流
+// 相机变动 → 上报视锥：:8090 订阅裁剪（标准链路）+ :8091 聚合裁剪（百万链路），200ms 节流
 function sendViewport(force) {
-  if (!viewer || !fleetWs || fleetWs.readyState !== WebSocket.OPEN) return
-  const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid)
-  if (!rect) return
+  if (!viewer) return
   const now = Date.now()
   if (!force && now - _lastVpSend < 200) return
   _lastVpSend = now
-  fleetWs.send(JSON.stringify({
-    h: Math.round(viewer.camera.positionCartographic.height),
+  const rect = viewer.camera.computeViewRectangle(viewer.scene.globe.ellipsoid)
+  if (!rect) return
+  const vp = {
     minLat: +Cesium.Math.toDegrees(rect.south).toFixed(5),
     maxLat: +Cesium.Math.toDegrees(rect.north).toFixed(5),
     minLon: +Cesium.Math.toDegrees(rect.west).toFixed(5),
     maxLon: +Cesium.Math.toDegrees(rect.east).toFixed(5),
-    full: false
-  }))
+    camAlt: Math.round(viewer.camera.positionCartographic.height),
+  }
+  // 未连接时 wsClient 缓存条件，连上自动重发
+  wsClient.subscribe({ viewport: vp })
+  if (fleetWs && fleetWs.readyState === WebSocket.OPEN) {
+    fleetWs.send(JSON.stringify({ ...vp, h: vp.camAlt, full: false }))
+  }
 }
 
 // 机群规模调整 + 在线数轮询（cell 帧的 count 是网格数，真实在线数以 /stats 为准）
@@ -491,7 +559,7 @@ function mainLoop() {
   if (pendingFrame) {
     const data = pendingFrame
     pendingFrame = null
-    millionFrameMode.value = data.isCell ? '聚合' : '原始'
+    millionFrameMode.value = data.isCell ? 'monitor.frame.cell' : 'monitor.frame.raw'
     millionRenderer.updateBatch(data.pos, data.meta, data.ll, data.count, data.isCell)
   }
   if (millionLabel.value.visible) updateMillionLabelPos()
@@ -523,7 +591,7 @@ async function enterMillionMode() {
   millionRenderer.init()
   startFleetWorker()
   connectFleetWs()
-  camListener = viewer.camera.changed.addEventListener(() => sendViewport(false))
+  sendViewport(true)
   statsPollTimer = setInterval(pollFleetStats, 2000)
   // 百万模式即上百万规模，工具栏可切 10万/50万/100万
   fleetScale.value = 1000000
@@ -541,14 +609,13 @@ async function enterMillionMode() {
 
 async function exitMillionMode() {
   clearTimeout(fleetWsReconnectTimer)
-  if (camListener) { camListener(); camListener = null }
   clearInterval(statsPollTimer); statsPollTimer = null
   if (fleetWs) { try { fleetWs.close() } catch (e) {} fleetWs = null }
   if (fleetWorker) { fleetWorker.terminate(); fleetWorker = null }
   workerBusy = false
   pendingFrame = null
   millionDropped.value = 0
-  millionFrameMode.value = '连接中'
+  millionFrameMode.value = 'monitor.frame.connecting'
   millionRenderer.destroy()
   closeMillionLabel()
   fleetScale.value = 0
@@ -568,14 +635,14 @@ function openMillionLabel(idx, screenPos) {
   const d = millionRenderer.getPointData(idx)
   if (!d) return
   const carto = Cesium.Cartographic.fromCartesian(d.cartesian)
-  const alertNames = { 0: ['NONE', '无'], 1: ['WARNING', '警告'], 2: ['CRITICAL', '危急'] }
-  const [cls, text] = alertNames[d.alert] || alertNames[0]
+  const alertKeys = { 0: ['NONE', 'monitor.alertLevel.NONE'], 1: ['WARNING', 'monitor.alertLevel.WARNING'], 2: ['CRITICAL', 'monitor.alertLevel.CRITICAL'] }
+  const [cls, key] = alertKeys[d.alert] || alertKeys[0]
   millionLabel.value = {
     visible: true, index: idx,
     lon: Cesium.Math.toDegrees(carto.longitude).toFixed(5),
     lat: Cesium.Math.toDegrees(carto.latitude).toFixed(5),
     alt: Math.round(carto.height),
-    alertClass: cls, alertText: text,
+    alertClass: cls, alertText: key,
     x: screenPos.x + 16, y: screenPos.y - 12
   }
 }
@@ -598,12 +665,12 @@ function onAlarmEvent(d) {
   const sn = d.droneSn || '--'
   const meta = droneMeta.get(sn) || {}
   meta.alertLevel = d.alarmLevel || 'GENERAL'
-  meta.alertType = d.alarmType || '告警'
+  meta.alertType = d.alarmType || ''
   meta.alertText = `${levelLabel(d.alarmLevel || '')} · ${typeLabel(d.alarmType || '')}`
   droneMeta.set(sn, meta)
 
   alertList.value.unshift({
-    time: new Date().toLocaleTimeString('zh-CN', { hour12: false }),
+    time: new Date().toLocaleTimeString(locale.value === 'en' ? 'en-US' : 'zh-CN', { hour12: false }),
     level: meta.alertLevel,
     levelLabel: levelLabel(meta.alertLevel),
     sn,
@@ -614,9 +681,9 @@ function onAlarmEvent(d) {
   if (alertList.value.length > 50) alertList.value.pop()
   alarmCount.value = alertList.value.length
 
-  // 标牌若正打开着该机，刷新告警字段
+  // 标牌若正打开着该机，刷新告警字段（黑飞用专属 HF 黑色徽标）
   if (label.value.visible && label.value.sn === sn) {
-    label.value.alertLevel = meta.alertLevel
+    label.value.alertLevel = meta.alertType === 'NO_FLIGHT_PLAN' ? 'HF' : meta.alertLevel
     label.value.alertText = meta.alertText
   }
 }
@@ -631,10 +698,11 @@ function openLabelFor(idx, screenPos) {
     visible: true,
     sn,
     heading: meta.heading ?? '--',
-    alertLevel: meta.alertLevel || 'NONE',
-    alertText: meta.alertText || '无',
-    planCode: plan ? plan.plan_code : '无',
-    purpose: plan ? (plan.flight_purpose || '空域巡逻') : '无计划飞行',
+    phase: meta.flightPhase || 'FLYING',
+    alertLevel: meta.alertType === 'NO_FLIGHT_PLAN' ? 'HF' : (meta.alertLevel || 'NONE'),
+    alertText: meta.alertText || 'monitor.alertLevel.NONE',
+    planCode: plan ? plan.plan_code : t('monitor.none'),
+    purpose: plan ? (plan.flight_purpose || t('monitor.areaPatrol')) : t('monitor.noPlanFlight'),
     operator: ownerByDrone.get(sn) || '--',
     x: screenPos.x + 16, y: screenPos.y - 12
   }
@@ -643,7 +711,7 @@ function openLabelFor(idx, screenPos) {
 
 function focusAlarm(a) {
   const slot = droneMap.get(a.sn)
-  if (slot === undefined) { ElMessage.warning('该机暂无位置信息'); return }
+  if (slot === undefined) { ElMessage.warning(t('monitor.noPosition')); return }
   const cart = renderer.getPosition(slot)
   if (!cart) return
   const carto = Cesium.Cartographic.fromCartesian(cart)
@@ -685,7 +753,8 @@ async function loadPlanMeta() {
       fetch('/api/registry/owner/list', { headers }).then(r => r.json())
     ])
     for (const p of (planRes.data || [])) {
-      if (p.plan_status === 'APPROVED') planByDrone.set(p.drone_sn, p)
+      // 含放行/在飞状态：计划生命周期全程可在标牌溯源
+      if (['APPROVED', 'RELEASED', 'IN_FLIGHT'].includes(p.plan_status)) planByDrone.set(p.drone_sn, p)
     }
     const ownerName = new Map((ownerRes.data || []).map(o => [o.id, o.owner_name]))
     for (const r of (regRes.data || [])) ownerByDrone.set(r.drone_sn, ownerName.get(r.owner_id) || '--')
@@ -709,6 +778,7 @@ function onTelemetry(data) {
     const meta = droneMeta.get(id) || {}
     meta.heading = Math.round(pos.heading ?? data.heading ?? 0)
     meta.flightPlanId = data.flight_plan_id || ''
+    meta.flightPhase = data.flight_phase || meta.flightPhase || ''
     droneMeta.set(id, meta)
 
     // 还没 init，缓冲
@@ -728,9 +798,10 @@ const MAX_DRONES = 4000        // 槽位上限：仿真器 SN 随机生成，无
 const lastSeen = new Map()     // sn -> 最后遥测时间（LRU 驱逐依据）
 
 function applyData(data, id) {
-  // 告警事件积累的等级合入遥测，供渲染器按级别着色
+  // 告警事件积累的等级合入遥测，供渲染器按级别着色（黑飞 NO_FLIGHT_PLAN 走专属黑色）
   const meta = droneMeta.get(id)
   if (meta && meta.alertLevel) data.alertLevel = meta.alertLevel
+  if (meta && meta.alertType) data.alertType = meta.alertType
 
   const now = Date.now()
   lastSeen.set(id, now)
@@ -860,7 +931,24 @@ function toggleFps() {
 
 // ── 统计（仅标准模式；百万模式在线数走 /stats 轮询）──
 function updateStats() {
-  if (mode.value === 'standard' && renderer.isInitialized()) {
+  if (mode.value === 'standard') {
+    // 自愈：WS 消息流中断（handler 被生命周期竞态摘除）时强制重挂并补发订阅
+    if (lastWsMsgAt && Date.now() - lastWsMsgAt > 10000) {
+      console.warn('[FlightMonitor] WS 消息流中断，重挂订阅')
+      if (unsubscribeWs) unsubscribeWs()
+      unsubscribeWs = null
+      if (offWsStatus) { offWsStatus(); offWsStatus = null }
+      connectWebSocket()
+      sendViewport(true)
+    }
+    if (!renderer.isInitialized()) {
+      // 自愈：快照/竞态可能绕过缓冲初始化，只要槽位映射存在就按槽位数重试 init
+      if (droneMap.size > 0 && !initStarted && !initTimer) {
+        initStarted = true
+        renderer.init(droneMap.size).catch(() => {}).finally(() => { initStarted = false })
+      }
+      return
+    }
     droneCount.value = renderer.getCount()
     currentLevel.value = renderer.getCurrentLevel()
   }
@@ -872,24 +960,28 @@ onMounted(() => {
   connectWebSocket()
   loadPlanMeta()
   viewer.screenSpaceEventHandler.setInputAction(onLeftClick, Cesium.ScreenSpaceEventType.LEFT_CLICK)
+  // 标准模式也上报视锥：服务端按视野裁剪遥测/告警，省带宽省渲染
+  camListener = viewer.camera.changed.addEventListener(() => sendViewport(false))
   statsTimer = setInterval(updateStats, 2000)
   loadLayers()
   loadSnapshot()
   replayActiveAlarms()
   loadSuppressRules()
+  sendViewport(true)
   mainLoop()
 })
 
 onUnmounted(() => {
   cancelAnimationFrame(rafId)
-  clearTimeout(wsReconnectTimer); clearTimeout(initTimer); clearInterval(statsTimer)
+  clearTimeout(initTimer); clearInterval(statsTimer)
   clearTimeout(fleetWsReconnectTimer)
   if (camListener) { camListener(); camListener = null }
+  if (unsubscribeWs) { unsubscribeWs(); unsubscribeWs = null }
+  if (offWsStatus) { offWsStatus(); offWsStatus = null }
   clearInterval(statsPollTimer)
   if (fleetWs) fleetWs.close()
   if (fleetWorker) fleetWorker.terminate()
   if (labelTimer) { clearInterval(labelTimer); labelTimer = null }
-  if (ws) ws.close()
   millionRenderer.destroy()
   renderer.destroy()
   if (viewer) { viewer.destroy(); viewer = null }
@@ -899,15 +991,17 @@ onUnmounted(() => {
 <style scoped>
 .flight-monitor { width: 100%; height: 100%; position: relative; }
 .cesium-container { width: 100%; height: 100%; }
-.top-stats { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.75); color: #0f0; padding: 6px 18px; border-radius: 6px; font-size: 14px; display: flex; gap: 24px; z-index: 10; }
+.top-stats { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(6, 12, 22, 0.78); color: #22d3ee; border: 1px solid rgba(34, 211, 238, 0.35); text-shadow: 0 0 8px rgba(34, 211, 238, 0.5); padding: 6px 18px; border-radius: 6px; font-size: 14px; display: flex; gap: 24px; z-index: 10; backdrop-filter: blur(6px); }
 .toolbar { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; gap: 8px; flex-direction: column; }
-.toolbar button { background: rgba(0,0,0,0.7); color: #fff; border: 1px solid #555; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.toolbar button:hover { background: rgba(50,50,50,0.8); }
-.toolbar button.active { background: #b45309; border-color: #f59e0b; }
+.toolbar button { background: rgba(6, 12, 22, 0.72); color: #c8d5e6; border: 1px solid #223350; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; transition: border-color .2s, color .2s; backdrop-filter: blur(6px); }
+.toolbar button:hover { border-color: #2f81f7; color: #fff; }
+.toolbar button.active { background: rgba(47, 129, 247, 0.25); border-color: #22d3ee; color: #7ce8ff; box-shadow: 0 0 10px rgba(34, 211, 238, 0.35); }
 .toolbar button:disabled { opacity: 0.5; cursor: wait; }
+/* 生图工具图标：黑底图用 screen 混合融入按钮 */
+.tb-ic { width: 15px; height: 15px; mix-blend-mode: screen; border-radius: 3px; vertical-align: -3px; margin-right: 4px; }
 .scale-group { display: flex; flex-direction: column; gap: 4px; }
-.scale-group button { background: rgba(0,0,0,0.7); color: #9ecbff; border: 1px solid #555; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
-.scale-group button.active { background: #0b3a66; border-color: #409eff; color: #fff; }
+.scale-group button { background: rgba(6, 12, 22, 0.72); color: #9ecbff; border: 1px solid #223350; padding: 5px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+.scale-group button.active { background: rgba(47, 129, 247, 0.25); border-color: #2f81f7; color: #fff; }
 .side-panel {
   position: absolute; top: 120px; left: 10px; width: 300px; max-height: 72vh;
   background: rgba(0,0,0,0.82); border: 1px solid #3a4a5f; border-radius: 8px;
@@ -942,17 +1036,24 @@ onUnmounted(() => {
 /* 点击无人机弹出的 DOM 标牌 */
 .drone-label {
   position: absolute; z-index: 30; min-width: 230px;
-  background: rgba(8,18,30,0.92); border: 1px solid #2E86AB; border-left: 3px solid #2E86AB;
-  border-radius: 6px; color: #dff3ff; font-size: 12px; padding: 8px 10px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+  background: rgba(6, 13, 24, 0.92); border: 1px solid rgba(47, 129, 247, 0.45); border-left: 3px solid #22d3ee;
+  border-radius: 8px; color: #dff3ff; font-size: 12px; padding: 8px 10px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 0 12px rgba(34, 211, 238, 0.18);
+  backdrop-filter: blur(8px);
 }
-.dl-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(46,134,171,.5); padding-bottom: 4px; margin-bottom: 4px; }
+.dl-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(47, 129, 247, 0.4); padding-bottom: 4px; margin-bottom: 4px; }
 .dl-sn { color: #6fd3ff; font-weight: bold; }
 .dl-close { cursor: pointer; color: #89a; padding: 0 4px; }
 .dl-close:hover { color: #fff; }
 .dl-row { display: flex; gap: 8px; line-height: 1.8; }
 .dl-k { color: #7ba0b5; min-width: 56px; }
+.dl-phase { color: #6fd3ff; }
 .alv-CRITICAL, .alv-MAJOR, .alv-EMERGENCY { color: #ff5252; font-weight: bold; }
 .alv-WARNING, .alv-MINOR, .alv-SERIOUS { color: #ffb74d; }
 .alv-NONE { color: #7ecb7e; }
+/* 黑飞专属：黑色徽标（深色面板上以黑底白字呈现，与无人机黑点/黑图标呼应） */
+.alv-HF {
+  display: inline-block; background: #0d0d0d; color: #fff;
+  border: 1px solid #4a4a4a; border-radius: 3px; padding: 0 6px; font-weight: bold;
+}
 </style>

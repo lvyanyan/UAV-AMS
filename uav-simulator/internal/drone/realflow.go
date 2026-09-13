@@ -13,6 +13,7 @@ type RealMission struct {
 	Operator    string    // 运营主体
 	Departure   string    // 起飞点名称
 	Destination string    // 降落点名称
+	State       MissionState // 任务状态：PENDING 待命 / EXECUTING 执行中 / DONE 已完成
 	Waypoints   []Position // 起飞点 → 途经航点 → 降落点（巡航高度）
 }
 
@@ -81,15 +82,21 @@ var DefaultRealMissions = []RealMission{
 }
 
 // CreateRealFlowFleet 创建执行真实飞行计划的机队
-// 每架无人机绑定一条已审批飞行计划，按 起飞→航点巡航→降落→充电→重飞 轮换
-func (s *Simulator) CreateRealFlowFleet(missions []RealMission) {
+// autoStart=false（受控模式，默认）：全部待命 IDLE，等待平台 TAKEOFF 指令（按 planCode 匹配）；
+// autoStart=true（旧行为）：每架无人机绑定一条已审批飞行计划，启动即 起飞→巡航→降落→充电→重飞 轮换。
+func (s *Simulator) CreateRealFlowFleet(missions []RealMission, autoStart bool) {
 	for i := range missions {
 		m := missions[i]
+		m.State = MissionPending
 		home := Position{Lat: m.Waypoints[0].Lat, Lon: m.Waypoints[0].Lon, AltM: 0}
 		d := NewDrone(m.SN, m.Model, home, rand.New(rand.NewSource(s.rng.Int63())))
 		d.SpeedMs = 14 + s.rng.Float64()*8
 		d.realMissions = []RealMission{m}
-		d.startNextRealMission()
+		d.realAutoStart = autoStart
+		d.missionState = MissionPending
+		if autoStart {
+			d.startNextRealMission()
+		}
 		s.drones[m.SN] = d
 	}
 }

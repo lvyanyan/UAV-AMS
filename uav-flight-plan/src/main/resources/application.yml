@@ -9,6 +9,22 @@ spring:
     username: ${DB_USER:uav}
     password: ${DB_PASS:uav123}
     driver-class-name: org.postgresql.Driver
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:172.27.19.223:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: flight-plan
+      auto-offset-reset: latest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+# 服务间调用（放行检查核验实名登记/驾驶员资质）
+uav:
+  services:
+    registry-base-url: ${REGISTRY_BASE_URL:http://localhost:8086}
+    pilot-base-url: ${PILOT_BASE_URL:http://localhost:8087}
 
 mybatis-plus:
   configuration:

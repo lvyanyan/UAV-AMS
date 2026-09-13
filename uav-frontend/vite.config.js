@@ -34,8 +34,8 @@ export default defineConfig({
     chunkSizeWarningLimit: 4000,
     rollupOptions: {
       output: {
+        // cesium 由 vite-plugin-cesium 外部化注入，不能进 manualChunks
         manualChunks: {
-          cesium: ['cesium'],
           vue: ['vue', 'vue-router', 'pinia'],
           element: ['element-plus']
         }

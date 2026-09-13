@@ -192,6 +192,22 @@
 
 ---
 
+## 追加任务十：外部对接——体检中心 + UOM 上报 + 资质到期告警（2026-09-13）
+
+**实施记录（2026-09-13 完成验收）**
+- **体检字段错位修复**：前端体检表单旧字段 `examOrg/result/attachmentUrl` 与后端实体 `exam_result/exam_report_url` 对不上，Jackson 静默丢弃导致体检结果永远为空。前后端字段全面对齐（examOrg/examResult/examReportUrl/expireDate/source），后端 `uav_pilot_medical` 幂等补列 `exam_org`、`source`（PilotInfraInitializer）。
+- **体检中心对接（定时拉取）**：uav-pilot 新增 `MedicalCenterSyncService`——每 5 分钟拉取体检中心 API（X-API-KEY 头），按身份证号（缺失回退姓名）匹配飞手，`source=CENTER` 幂等落库（同飞手同体检日期去重）；`POST /api/pilot/medical-center/sync` 手动触发 + `/status` 查询。内置 mock 体检中心 `/api/pilot/mock-center/exams` 按库内飞手生成确定性体检目录（跑通演示链路，生产改 `uav.medical-center.base-url` 指真实中心即可）。配置段 `uav.medical-center.*`。
+- **资质到期告警**：alarm-engine 新增 `QualificationExpireRunner`（每 10 分钟，`POST /api/alarm/qualification/check` 手动触发）——执照/体检过期→SERIOUS、30 天内到期→GENERAL、复检/换证后自动关闭存量告警；告警 `drone_sn` 存 `PILOT-{id}`；`AlarmStaleCloseRunner` 排除这两类持续状态告警；AlarmType 枚举 + 字典新增 LICENSE_EXPIRE/MEDICAL_EXPIRE。
+- **放行检查 5 项→6 项**：ReleaseCheckService 新增「飞手体检有效」检查（`GET /api/pilot/{id}/medical/valid`）——过期/不合格 fail-closed，无体检记录 fail-open（存量数据缺失不阻断）。
+- **UOM 对接（实名登记上报）**：uav-registry 新增 `UomReportService`——审批通过自动上报 + 单条手动上报 + 批量补报 `POST /api/registry/uom/report-all` + 失败重试（定时 + 手动，max-retry 5）；对接留痕 `external_integration_log`（RegistryInfraInitializer 幂等建表 + uom_status/uom_report_time 列）；内置 mock UOM 接收端 `/api/registry/mock-uom/registrations`（HTTP 2xx + code=0 受理成功），生产替换 `uav.uom.base-url` + 正式 app-id/secret。`uav_owner`/`uav_registration` 补 `uom_status`/`uom_report_time` 列。
+- **前端**：Registry 页 UOM 状态列（已上报/未上报/失败）+ 单条「上报UOM」+「全部上报」+「对接日志」弹窗（重试失败项）；Pilot 页体检对话框字段修复 + 来源列（体检中心/手动）+「同步体检中心」按钮；中英文 i18n 补齐。
+- **顺带修复**：uav-pilot / uav-registry 缺失 JacksonConfig（其余服务均有），导致 Timestamp 以 UTC 串输出、前端显示少 8 小时——补齐后接口时间统一 `yyyy-MM-dd HH:mm:ss`。
+- 验收：体检同步 6 条幂等落库；飞手张伟（mock 体检过期）自动开 SERIOUS「体检到期」告警并在告警中心字典化显示；放行六项检查实测（过期飞手仅体检项 FAIL 拦截、换有效飞手六项全过）；UOM 批量上报 210/210 成功（207 无人机 + 3 所有人）、复跑幂等 reported=0、对接日志 SUCCESS 留痕、时间格式正确；Registry/Pilot 页面浏览器实测渲染正常。
+
+**状态**：[x] 已完成（2026-09-13）
+
+---
+
 ## 任务四：环境速查（新会话直接用）
 
 - 基础设施（WSL Ubuntu 内 docker）：`wsl -d Ubuntu -- docker start uav-postgres uav-redis uav-emqx uav-kafka`；Windows 侧经 localhost 转发或直连 WSL IP（当前 172.27.19.223，重启可能变化）。

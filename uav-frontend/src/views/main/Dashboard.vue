@@ -2,7 +2,7 @@
   <div class="dashboard">
     <!-- 平台标题 -->
     <div class="dash-header">
-      <h2>低空飞行服务管控平台</h2>
+      <h2>{{ $t('app.title') }}</h2>
       <span class="dash-date">{{ today }}</span>
     </div>
 
@@ -20,19 +20,19 @@
     <el-row :gutter="14" class="mid-row">
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b class="panel-title"><el-icon><Warning /></el-icon> 告警级别分布</b></template>
+          <template #header><b class="panel-title"><el-icon><Warning /></el-icon> {{ $t('dashboard.levelDist') }}</b></template>
           <div ref="levelChartEl" class="chart" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b class="panel-title"><el-icon><Histogram /></el-icon> 告警类型 TOP5</b></template>
+          <template #header><b class="panel-title"><el-icon><Histogram /></el-icon> {{ $t('dashboard.typeTop5') }}</b></template>
           <div ref="typeChartEl" class="chart" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b class="panel-title"><el-icon><Document /></el-icon> 飞行计划状态</b></template>
+          <template #header><b class="panel-title"><el-icon><Document /></el-icon> {{ $t('dashboard.planStatus') }}</b></template>
           <div ref="planChartEl" class="chart" />
         </el-card>
       </el-col>
@@ -42,18 +42,18 @@
     <el-row :gutter="14" class="bottom-row">
       <el-col :span="16">
         <el-card shadow="never" class="panel">
-          <template #header><b class="panel-title"><el-icon><TrendCharts /></el-icon> 近 30 分钟告警趋势</b></template>
+          <template #header><b class="panel-title"><el-icon><TrendCharts /></el-icon> {{ $t('dashboard.trend30') }}</b></template>
           <div ref="trendChartEl" class="chart trend" />
         </el-card>
       </el-col>
       <el-col :span="8">
         <el-card shadow="never" class="panel">
-          <template #header><b class="panel-title"><el-icon><Lightning /></el-icon> 快捷操作</b></template>
+          <template #header><b class="panel-title"><el-icon><Lightning /></el-icon> {{ $t('dashboard.quickActions') }}</b></template>
           <div class="quick-actions">
-            <el-button type="primary" @click="$router.push('/flight-monitor')"><el-icon><Monitor /></el-icon>&nbsp;飞行监控大屏</el-button>
-            <el-button type="success" @click="$router.push('/flight-plan')"><el-icon><Document /></el-icon>&nbsp;飞行计划审批</el-button>
-            <el-button type="warning" @click="$router.push('/alarm')"><el-icon><Bell /></el-icon>&nbsp;告警中心</el-button>
-            <el-button type="info" @click="$router.push('/airspace')"><el-icon><MapLocation /></el-icon>&nbsp;空域配置</el-button>
+            <el-button type="primary" @click="$router.push('/flight-monitor')"><img class="qa-ic" src="@/assets/icons/ic-radar.png" alt="" />&nbsp;{{ $t('dashboard.qa.monitor') }}</el-button>
+            <el-button type="success" @click="$router.push('/flight-plan')"><img class="qa-ic" src="@/assets/icons/ic-plan.png" alt="" />&nbsp;{{ $t('dashboard.qa.plan') }}</el-button>
+            <el-button type="warning" @click="$router.push('/alarm')"><img class="qa-ic" src="@/assets/icons/ic-alarm.png" alt="" />&nbsp;{{ $t('dashboard.qa.alarm') }}</el-button>
+            <el-button type="info" @click="$router.push('/airspace')"><img class="qa-ic" src="@/assets/icons/ic-airspace.png" alt="" />&nbsp;{{ $t('dashboard.qa.airspace') }}</el-button>
           </div>
         </el-card>
       </el-col>
@@ -63,21 +63,22 @@
     <el-row :gutter="14" class="bottom-row">
       <el-col :span="24">
         <el-card shadow="never" class="panel">
-          <template #header><b class="panel-title"><el-icon><Bell /></el-icon> 最新告警</b></template>
+          <template #header><b class="panel-title"><el-icon><Bell /></el-icon> {{ $t('dashboard.latestAlarms') }}</b></template>
           <el-table :data="recentAlarms" border size="small" max-height="240">
-            <el-table-column prop="createTime" label="时间" width="150">
+            <el-table-column prop="createTime" :label="$t('dashboard.col.time')" width="150">
               <template #default="{ row }">{{ fmtTime(row.createTime) }}</template>
             </el-table-column>
-            <el-table-column prop="alarmLevel" label="级别" width="100">
+            <el-table-column prop="alarmLevel" :label="$t('dashboard.col.level')" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.alarmLevel === 'CRITICAL' ? 'danger' : 'warning'" size="small">{{ levelLabel(row.alarmLevel) }}</el-tag>
+                <el-tag v-if="row.alarmType === 'NO_FLIGHT_PLAN'" class="hf-tag" size="small">{{ levelLabel(row.alarmLevel) }}</el-tag>
+                <el-tag v-else :type="row.alarmLevel === 'CRITICAL' ? 'danger' : 'warning'" size="small">{{ levelLabel(row.alarmLevel) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="droneSn" label="无人机SN" width="140" />
-            <el-table-column prop="alarmType" label="类型" min-width="150">
+            <el-table-column prop="droneSn" :label="$t('dashboard.col.sn')" width="140" />
+            <el-table-column prop="alarmType" :label="$t('dashboard.col.type')" min-width="150">
               <template #default="{ row }">{{ typeLabel(row.alarmType) }}</template>
             </el-table-column>
-            <el-table-column prop="message" label="内容" min-width="160" />
+            <el-table-column prop="message" :label="$t('dashboard.col.content')" min-width="160" />
           </el-table>
         </el-card>
       </el-col>
@@ -86,7 +87,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { airspaceApi } from '@/api/airspace'
 import { registryApi } from '@/api/registry'
@@ -95,20 +97,24 @@ import { flightPlanApi } from '@/api/flight-plan'
 import { alarmApi } from '@/api/alarm'
 import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
+import { locale } from '@/locales'
 
-const today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+const { t } = useI18n()
 
-// 配色统一：蓝主色 / 红危急 / 橙警告 / 绿正常
-const C = { blue: '#409eff', red: '#f56c6c', orange: '#e6a23c', green: '#67c23a', gray: '#909399' }
+const today = computed(() => new Date().toLocaleDateString(locale.value === 'en' ? 'en-US' : 'zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' }))
+
+// 配色统一：品牌蓝 / 青高亮 / 红危急 / 橙警告 / 绿正常
+const C = { blue: '#2f81f7', cyan: '#22d3ee', red: '#f0524f', orange: '#f5a623', green: '#34d399', gray: '#8fa1bc' }
 const LEVEL_COLOR: Record<string, string> = {
   EMERGENCY: C.red, CRITICAL: C.red,
   MAJOR: C.orange, SERIOUS: C.orange, WARNING: C.orange,
   GENERAL: C.blue, MINOR: C.gray,
 }
 const STATUS_COLOR: Record<string, string> = {
-  APPROVED: C.green, COMPLETED: C.gray, REJECTED: C.red,
+  APPROVED: C.green, RELEASED: C.cyan, IN_FLIGHT: C.blue,
+  COMPLETED: C.gray, EXPIRED: C.gray, CANCELLED: C.gray, REJECTED: C.red,
   PENDING_LEVEL1: C.blue, PENDING_LEVEL2: C.orange, PENDING_LEVEL3: C.orange,
-  DRAFT: C.gray,
+  DRAFT: C.gray, MILITARY_CANCELLED: C.gray,
 }
 
 const regDrones = ref(0)
@@ -122,12 +128,12 @@ const planByStatus = ref<Record<string, number>>({})
 const recentAlarms = ref<any[]>([])
 
 const cards = computed(() => [
-  { label: '登记无人机', value: regDrones.value, accent: 'blue', to: '/registry' },
-  { label: '注册飞手', value: pilots.value, accent: 'green', to: '/pilot' },
-  { label: '管理空域', value: airspaces.value, accent: 'cyan', to: '/airspace' },
-  { label: '飞行计划', value: plansTotal.value, accent: 'blue', to: '/flight-plan' },
-  { label: '累计告警', value: alarmTotal.value, accent: 'orange', to: '/alarm' },
-  { label: '危急告警', value: alarmByLevel.value.CRITICAL || 0, accent: 'red', to: '/alarm' },
+  { label: t('dashboard.card.drones'), value: regDrones.value, accent: 'blue', to: '/registry' },
+  { label: t('dashboard.card.pilots'), value: pilots.value, accent: 'green', to: '/pilot' },
+  { label: t('dashboard.card.airspaces'), value: airspaces.value, accent: 'cyan', to: '/airspace' },
+  { label: t('dashboard.card.plans'), value: plansTotal.value, accent: 'blue', to: '/flight-plan' },
+  { label: t('dashboard.card.alarms'), value: alarmTotal.value, accent: 'orange', to: '/alarm' },
+  { label: t('dashboard.card.critical'), value: alarmByLevel.value.CRITICAL || 0, accent: 'red', to: '/alarm' },
 ])
 
 // ── ECharts ──
@@ -150,13 +156,13 @@ function emptyOption(text: string): echarts.EChartsCoreOption {
 
 function donutOption(data: { name: string; value: number; key: string }[], colorMap: Record<string, string>, defaultColor: string): echarts.EChartsCoreOption {
   return {
-    tooltip: { trigger: 'item', formatter: '{b}：{c}（{d}%）' },
-    legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 12, color: '#93a4bd' } },
+    tooltip: { trigger: 'item', formatter: (p: any) => t('dashboard.donutTip', { name: p.name, value: p.value, pct: p.percent }) },
+    legend: { bottom: 0, icon: 'circle', itemWidth: 8, itemHeight: 8, textStyle: { fontSize: 12, color: '#8fa1bc' } },
     series: [{
-      type: 'pie', radius: ['42%', '68%'], center: ['50%', '44%'],
-      itemStyle: { borderColor: '#101a2c', borderWidth: 2 },
-      label: { show: true, formatter: '{b} {c}', fontSize: 11, color: '#c6d2e2' },
-      labelLine: { length: 8, length2: 6 },
+      type: 'pie', radius: ['46%', '70%'], center: ['50%', '44%'],
+      itemStyle: { borderColor: '#0b1322', borderWidth: 2 },
+      label: { show: true, formatter: '{b} {c}', fontSize: 11, color: '#c8d5e6' },
+      labelLine: { length: 8, length2: 6, lineStyle: { color: '#3a4f74' } },
       data: data.map(d => ({ ...d, itemStyle: { color: colorMap[d.key] || defaultColor } })),
     }],
   }
@@ -164,35 +170,40 @@ function donutOption(data: { name: string; value: number; key: string }[], color
 
 function renderLevelChart() {
   const rows = Object.entries(alarmByLevel.value).map(([k, v]) => ({ name: levelLabel(k), value: v, key: k }))
-  if (!rows.length) { levelChart?.setOption(emptyOption('暂无告警数据'), true); return }
+  if (!rows.length) { levelChart?.setOption(emptyOption(t('dashboard.noAlarmData')), true); return }
   levelChart?.setOption(donutOption(rows, LEVEL_COLOR, C.blue), true)
 }
 
 function renderTypeChart() {
   const top = Object.entries(alarmByType.value).sort((a, b) => b[1] - a[1]).slice(0, 5)
     .map(([code, count]) => ({ code, label: typeLabel(code), count }))
-  if (!top.length) { typeChart?.setOption(emptyOption('暂无告警类型'), true); return }
+  if (!top.length) { typeChart?.setOption(emptyOption(t('dashboard.noAlarmType')), true); return }
   typeChart?.setOption({
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
     grid: { left: 8, right: 40, top: 8, bottom: 0, containLabel: true },
-    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#1f2e47' } } },
+    xAxis: { type: 'value', splitLine: { lineStyle: { color: '#192742' } } },
     yAxis: {
       type: 'category', inverse: true,
       data: top.map(t => t.label),
-      axisLabel: { color: '#c6d2e2', fontSize: 11 },
+      axisLabel: { color: '#c8d5e6', fontSize: 11 },
       axisLine: { show: false }, axisTick: { show: false },
     },
     series: [{
       type: 'bar', barWidth: 14, data: top.map(t => t.count),
-      itemStyle: { color: C.orange, borderRadius: [0, 7, 7, 0] },
-      label: { show: true, position: 'right', color: '#e6edf8', fontSize: 11 },
+      itemStyle: {
+        borderRadius: [0, 7, 7, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: '#2f81f7' }, { offset: 1, color: '#22d3ee' },
+        ]),
+      },
+      label: { show: true, position: 'right', color: '#e8f0fb', fontSize: 11 },
     }],
   }, true)
 }
 
 function renderPlanChart() {
   const rows = Object.entries(planByStatus.value).map(([k, v]) => ({ name: statusLabel(k), value: v, key: k }))
-  if (!rows.length) { planChart?.setOption(emptyOption('暂无飞行计划'), true); return }
+  if (!rows.length) { planChart?.setOption(emptyOption(t('dashboard.noPlan')), true); return }
   planChart?.setOption(donutOption(rows, STATUS_COLOR, C.blue), true)
 }
 
@@ -215,18 +226,19 @@ function renderTrendChart() {
     if (idx >= 0 && idx < WINDOW_MIN) { buckets[idx]++; inWindow++ }
   }
   if (!inWindow) {
-    trendChart?.setOption(emptyOption('近 30 分钟无告警'), true)
+    trendChart?.setOption(emptyOption(t('dashboard.noTrend')), true)
     return
   }
   trendChart?.setOption({
     tooltip: { trigger: 'axis' },
     grid: { left: 8, right: 16, top: 20, bottom: 0, containLabel: true },
-    xAxis: { type: 'category', boundaryGap: false, data: labels, axisLabel: { color: '#93a4bd', fontSize: 11, interval: 4 }, axisLine: { lineStyle: { color: '#24344f' } } },
-    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#1f2e47' } }, axisLabel: { color: '#93a4bd' } },
+    xAxis: { type: 'category', boundaryGap: false, data: labels, axisLabel: { color: '#8fa1bc', fontSize: 11, interval: 4 }, axisLine: { lineStyle: { color: '#223350' } } },
+    yAxis: { type: 'value', minInterval: 1, splitLine: { lineStyle: { color: '#192742' } }, axisLabel: { color: '#8fa1bc' } },
     series: [{
-      name: '告警数', type: 'line', smooth: true, data: buckets,
-      lineStyle: { color: C.red, width: 2 }, itemStyle: { color: C.red },
-      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(245,108,108,0.35)' }, { offset: 1, color: 'rgba(245,108,108,0.02)' }]) },
+      name: t('dashboard.alarmCount'), type: 'line', smooth: true, data: buckets, symbol: 'circle', symbolSize: 5,
+      lineStyle: { color: C.red, width: 2, shadowColor: 'rgba(240, 82, 79, 0.5)', shadowBlur: 8 },
+      itemStyle: { color: C.red },
+      areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(240,82,79,0.38)' }, { offset: 1, color: 'rgba(240,82,79,0.02)' }]) },
     }],
   }, true)
 }
@@ -234,6 +246,9 @@ function renderTrendChart() {
 function renderCharts() {
   renderLevelChart(); renderTypeChart(); renderPlanChart(); renderTrendChart()
 }
+
+// 语言切换后图表文案（系列名/空态提示/字典标签）即时刷新
+watch(locale, () => renderCharts())
 
 function initCharts() {
   if (levelChartEl.value) levelChart = echarts.init(levelChartEl.value)
@@ -289,24 +304,56 @@ onUnmounted(() => {
 <style scoped>
 .dashboard { padding: 20px; }
 .dash-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 16px; }
-.dash-header h2 { margin: 0; color: var(--el-text-color-primary); }
-.dash-date { color: #909399; font-size: 13px; }
+.dash-header h2 {
+  margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 2px;
+  background: linear-gradient(100deg, #eaf3ff 20%, #7cc7ff 55%, #22d3ee 90%);
+  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+}
+.dash-date { color: #8fa1bc; font-size: 13px; }
 .stats-row { margin-bottom: 14px; }
-.stat-card { text-align: center; cursor: pointer; border-top: 3px solid #409eff; }
-.stat-card.blue { border-top-color: #409eff; }
-.stat-card.green { border-top-color: #67c23a; }
-.stat-card.cyan { border-top-color: #36cfc9; }
-.stat-card.orange { border-top-color: #e6a23c; }
-.stat-card.red { border-top-color: #f56c6c; }
-.stat-value { font-size: 32px; font-weight: 700; color: var(--el-text-color-primary); }
-.stat-label { font-size: 13px; color: #909399; margin-top: 4px; }
-.panel :deep(.el-card__header) { padding: 10px 16px; background: var(--el-fill-color-lighter); }
-.panel-title { display: inline-flex; align-items: center; gap: 6px; color: var(--el-text-color-primary); }
-.panel-title .el-icon { color: var(--el-color-primary); }
+.stat-card {
+  position: relative; text-align: center; cursor: pointer; overflow: hidden;
+  border: 1px solid rgba(47, 129, 247, 0.16);
+  background: linear-gradient(180deg, rgba(18, 30, 52, 0.72), rgba(11, 19, 34, 0.72));
+  backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+.stat-card::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+  background: var(--accent, #2f81f7);
+  box-shadow: 0 0 12px var(--accent, #2f81f7);
+}
+.stat-card:hover { transform: translateY(-3px); border-color: rgba(34, 211, 238, 0.5); box-shadow: 0 0 20px rgba(34, 211, 238, 0.18); }
+.stat-card.blue   { --accent: #2f81f7; }
+.stat-card.green  { --accent: #34d399; }
+.stat-card.cyan   { --accent: #22d3ee; }
+.stat-card.orange { --accent: #f5a623; }
+.stat-card.red    { --accent: #f0524f; }
+.stat-value { font-size: 32px; font-weight: 700; letter-spacing: 1px; }
+.stat-card .stat-value { text-shadow: 0 0 18px color-mix(in srgb, var(--accent, #2f81f7) 60%, transparent); }
+.stat-label { font-size: 13px; color: #8fa1bc; margin-top: 4px; letter-spacing: 1px; }
+.panel {
+  border: 1px solid rgba(47, 129, 247, 0.16);
+  background: linear-gradient(180deg, rgba(18, 30, 52, 0.72), rgba(11, 19, 34, 0.72));
+  backdrop-filter: blur(8px);
+}
+.panel :deep(.el-card__header) {
+  padding: 10px 16px;
+  background: linear-gradient(180deg, rgba(47, 129, 247, 0.10), rgba(47, 129, 247, 0.02));
+  border-bottom: 1px solid rgba(47, 129, 247, 0.16);
+}
+.panel-title { display: inline-flex; align-items: center; gap: 6px; color: var(--el-text-color-primary); letter-spacing: 1px; }
+.panel-title .el-icon { color: var(--uav-cyan, #22d3ee); filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.6)); }
 .chart { height: 265px; width: 100%; }
 .chart.trend { height: 225px; }
 .mid-row { margin-bottom: 14px; }
 .bottom-row { margin-bottom: 14px; }
 .quick-actions { display: flex; flex-direction: column; gap: 8px; }
 .quick-actions :deep(.el-button) { width: 100%; margin-left: 0; }
+/* 生图按钮图标：黑底图用 screen 混合融入按钮 */
+.qa-ic { width: 20px; height: 20px; mix-blend-mode: screen; border-radius: 4px; vertical-align: -5px; }
+/* 黑飞专属：黑色徽标 */
+.hf-tag {
+  background: #0d0d0d; color: #fff; border: 1px solid #4a4a4a; font-weight: 600;
+}
 </style>

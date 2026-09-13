@@ -4,6 +4,8 @@
  */
 import { computed, ref } from 'vue'
 import { dictApi, type DictItem } from '@/api/dict'
+import { i18n } from '@/locales'
+import { DICT_I18N_KEYS } from '@/locales/dictKeys'
 
 // 内置回退字典（dict 服务挂了页面也不裸奔英文）
 const FALLBACK: Record<string, DictItem[]> = {
@@ -79,9 +81,24 @@ export function loadDicts(): Promise<void> {
   return pending
 }
 
+/**
+ * 字典值 → 展示标签：命中 dictKeys i18n 映射时返回 t(key)（跟随 locale），
+ * 否则回退后端中文 label / 内置种子 label。
+ */
+function translateLabel(dictType: string, value: string, fallback: string): string {
+  const key = DICT_I18N_KEYS[dictType]?.[value]
+  if (key && i18n.global.te(key)) return i18n.global.t(key)
+  return fallback
+}
+
 export function useDict(dictType: string) {
   loadDicts()
-  const items = computed<DictItem[]>(() => cache.value[dictType] || FALLBACK[dictType] || [])
+  const items = computed<DictItem[]>(() =>
+    (cache.value[dictType] || FALLBACK[dictType] || []).map(i => ({
+      ...i,
+      label: translateLabel(dictType, String(i.value), i.label),
+    }))
+  )
   /** 值 → 标签；未登记的值原样透出（便于发现漏维护的枚举） */
   function label(value?: string | number | null): string {
     if (value === null || value === undefined || value === '') return '--'

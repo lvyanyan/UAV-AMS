@@ -19,7 +19,9 @@ public enum AlarmType {
     CAPACITY_EXCEEDED("容量超限"),
     ABNORMAL_HOVER("异常悬停"),
     SPEED_PLUNGE("速度骤降"),
-    BATTERY_PLUNGE("电量骤降");
+    BATTERY_PLUNGE("电量骤降"),
+    LICENSE_EXPIRE("执照到期"),
+    MEDICAL_EXPIRE("体检到期");
 
     private final String label;
     AlarmType(String label) { this.label = label; }

@@ -14,6 +14,15 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+uav:
+  medical-center:
+    # 体检中心对接：定时拉取体检结果 → uav_pilot_medical（source=CENTER）
+    enabled: true
+    # 默认指向本服务内置 mock 端点跑通演示链路；生产替换为真实体检中心地址
+    base-url: http://localhost:8087/api/pilot/mock-center
+    api-key: ${UAV_MC_API_KEY:dev-key}
+    cron: "0 */5 * * * *"
+
 logging:
   level:
     com.uav.pilot: DEBUG

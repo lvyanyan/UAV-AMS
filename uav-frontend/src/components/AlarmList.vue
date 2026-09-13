@@ -1,6 +1,6 @@
 <template>
   <div class="panel-list">
-    <div v-if="alarms.length === 0" class="empty">暂无告警</div>
+    <div v-if="alarms.length === 0" class="empty">{{ $t('alarm.empty') }}</div>
     <div v-for="alarm in alarms.slice(0, 100)" :key="alarm.timestamp" class="item" :class="alarm.alarmLevel">
       <div class="item-header">
         <span class="level-tag">{{ alarm.alarmLevel }}</span>
@@ -14,12 +14,13 @@
 
 <script setup lang="ts">
 import type { AlarmEvent } from '@/stores/droneStore'
+import { i18n } from '@/locales'
 
 defineProps<{ alarms: AlarmEvent[] }>()
 
 function fmtTime(ts: number) {
   const d = new Date(ts)
-  return d.toLocaleTimeString('zh-CN')
+  return d.toLocaleTimeString(i18n.global.locale.value === 'en' ? 'en-US' : 'zh-CN', { hour12: false })
 }
 </script>
 

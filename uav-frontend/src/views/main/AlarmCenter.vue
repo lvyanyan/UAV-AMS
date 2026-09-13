@@ -1,36 +1,38 @@
 <template>
   <div class="page-container">
-    <PageHeader title="告警中心" :subtitle="`实时告警接入与处置闭环 · 开启中的告警按时间倒序展示`">
+    <PageHeader :title="$t('alarm.title')" :subtitle="$t('alarm.subtitle')">
       <template #actions>
-        <el-tag size="large" type="danger">危急: {{ criticalCount }}</el-tag>
-        <el-tag size="large" type="warning">严重: {{ seriousCount }}</el-tag>
-        <el-tag size="large" type="info">一般: {{ generalCount }}</el-tag>
+        <el-tag size="large" type="danger">{{ $t('dict.alarm_level.CRITICAL') }}: {{ criticalCount }}</el-tag>
+        <el-tag size="large" type="warning">{{ $t('dict.alarm_level.SERIOUS') }}: {{ seriousCount }}</el-tag>
+        <el-tag size="large" type="info">{{ $t('dict.alarm_level.GENERAL') }}: {{ generalCount }}</el-tag>
       </template>
     </PageHeader>
 
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading" :row-class-name="rowClass">
-        <el-table-column prop="droneSn" label="无人机SN" width="140" />
-        <el-table-column prop="alarmType" label="告警类型" width="140">
+        <el-table-column prop="droneSn" :label="$t('common.sn')" width="140" />
+        <el-table-column prop="alarmType" :label="$t('alarm.type')" width="140">
           <template #default="{ row }">{{ typeLabel(row.alarmType) }}</template>
         </el-table-column>
-        <el-table-column prop="alarmLevel" label="等级" width="100">
+        <el-table-column prop="alarmLevel" :label="$t('common.level')" width="100">
           <template #default="{ row }">
             <el-tag :type="levelTag(row.alarmLevel)" size="small">{{ levelLabel(row.alarmLevel) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="消息内容" min-width="250" />
-        <el-table-column prop="sourceModule" label="来源模块" width="120" />
-        <el-table-column prop="createTime" label="时间" width="160">
+        <el-table-column prop="message" :label="$t('alarm.content')" min-width="250" />
+        <el-table-column prop="sourceModule" :label="$t('alarm.source')" width="120">
+          <template #default="{ row }">{{ row.sourceModule || $t('alarm.sourceEngine') }}</template>
+        </el-table-column>
+        <el-table-column prop="createTime" :label="$t('common.time')" width="160">
           <template #default="{ row }">{{ fmtTime(row.createTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="100">
+        <el-table-column :label="$t('common.operation')" width="100">
           <template #default="{ row }">
-            <el-button v-if="row.status !== 'CLOSED'" size="small" type="primary" @click="handleAlarm(row)">关闭</el-button>
-            <el-tag v-else size="small" type="success">已关闭</el-tag>
+            <el-button v-if="row.status !== 'CLOSED'" size="small" type="primary" @click="handleAlarm(row)">{{ $t('common.close') }}</el-button>
+            <el-tag v-else size="small" type="success">{{ $t('alarm.closed') }}</el-tag>
           </template>
         </el-table-column>
-        <template #empty><el-empty description="暂无告警" /></template>
+        <template #empty><el-empty :description="$t('alarm.empty')" /></template>
       </el-table>
       <TablePagination v-model:page="page" v-model:size="size" :total="total" />
     </el-card>
@@ -39,6 +41,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { alarmApi, type AlarmEvent } from '@/api/alarm'
 import { usePaging } from '@/composables/usePaging'
@@ -46,6 +49,8 @@ import { useDict } from '@/composables/useDict'
 import { fmtDateTime as fmtTime } from '@/utils/format'
 import PageHeader from '@/components/PageHeader.vue'
 import TablePagination from '@/components/TablePagination.vue'
+
+const { t } = useI18n()
 
 const list = ref<AlarmEvent[]>([])
 const loading = ref(false)
@@ -67,7 +72,7 @@ async function loadData() {
 
 async function handleAlarm(row: AlarmEvent) {
   await alarmApi.handle(row.id!)
-  ElMessage.success('告警已关闭；同机同类型再次命中会重新开启')
+  ElMessage.success(t('alarm.closeOk'))
   loadData()
 }
 

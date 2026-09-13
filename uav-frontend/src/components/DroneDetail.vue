@@ -1,6 +1,6 @@
 <template>
   <div class="detail-panel">
-    <div class="empty">点击地图上的无人机查看详情</div>
+    <div class="empty">{{ $t('drone.clickHint') }}</div>
   </div>
 </template>
 

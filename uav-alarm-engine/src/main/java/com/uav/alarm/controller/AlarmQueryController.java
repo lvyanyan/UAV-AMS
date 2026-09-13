@@ -21,13 +21,16 @@ public class AlarmQueryController {
     private final JdbcTemplate jdbc;
     private final com.uav.alarm.core.AlarmOpenStateStore openStore;
     private final com.uav.alarm.core.AlarmSuppressStore suppressStore;
+    private final com.uav.alarm.config.QualificationExpireRunner qualificationExpireRunner;
 
     public AlarmQueryController(JdbcTemplate jdbc,
                                 com.uav.alarm.core.AlarmOpenStateStore openStore,
-                                com.uav.alarm.core.AlarmSuppressStore suppressStore) {
+                                com.uav.alarm.core.AlarmSuppressStore suppressStore,
+                                com.uav.alarm.config.QualificationExpireRunner qualificationExpireRunner) {
         this.jdbc = jdbc;
         this.openStore = openStore;
         this.suppressStore = suppressStore;
+        this.qualificationExpireRunner = qualificationExpireRunner;
     }
 
     private static final String COLS = "id, drone_sn, alarm_type, alarm_level, alarm_content, lat, lng, alt, handled, status, create_time, closed_time";
@@ -163,5 +166,11 @@ public class AlarmQueryController {
         out.put("byType", byType);
         out.put("byLevel", byLevel);
         return R.ok(out);
+    }
+
+    // ===== 资质到期检查（执照/体检）：手动触发一轮（定时每 10 分钟自动执行）=====
+    @PostMapping("/qualification/check")
+    public R<Map<String, Object>> qualificationCheck() {
+        return R.ok(qualificationExpireRunner.check());
     }
 }

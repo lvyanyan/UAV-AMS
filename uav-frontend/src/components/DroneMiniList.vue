@@ -1,6 +1,6 @@
 <template>
   <div class="panel-list">
-    <div v-if="drones.size === 0" class="empty">等待数据...</div>
+    <div v-if="drones.size === 0" class="empty">{{ $t('drone.waiting') }}</div>
     <div v-for="[sn, drone] in [...drones.entries()].slice(0, 200)" :key="sn" class="drone-row">
       <span class="sn">{{ sn.substring(0, 10) }}</span>
       <span class="phase" :style="{color: phaseColor(drone.flightPhase)}">{{ drone.flightPhase }}</span>

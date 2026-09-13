@@ -21,9 +21,15 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 jwt:
-  secret: ${JWT_SECRET:uav-ams-dev-secret-key-min-32-chars!!}
+  # 生产环境务必通过环境变量 UAV_JWT_SECRET 覆盖默认值（长度>=32字符）
+  secret: ${UAV_JWT_SECRET:uav-ams-dev-secret-key-min-32-chars!!}
   expiration-ms: 7200000
   military-expiration-ms: 900000
+
+uav:
+  security:
+    # 演示用固定 MFA 验证码（军民协调员二次验证），生产环境请接入真实 TOTP 并覆盖/移除此项
+    mfa-code: "123456"
 
 logging:
   level:

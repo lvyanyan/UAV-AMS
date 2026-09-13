@@ -2,21 +2,21 @@
   <div class="page-container">
     <div class="page-header">
       <div>
-        <h2 class="page-title">消息重放</h2>
-        <div class="page-subtitle">回放历史遥测点位（实时服务内存环形缓冲，最长 10 分钟）· 已加载 {{ msgs.length }} 条 / {{ snCount }} 架</div>
+        <h2 class="page-title">{{ $t('replay.title') }}</h2>
+        <div class="page-subtitle">{{ $t('replay.subtitle', { loaded: msgs.length, drones: snCount }) }}</div>
       </div>
       <div class="header-actions">
         <el-radio-group v-model="windowSec" @change="loadHistory">
-          <el-radio-button :value="60">最近 1 分钟</el-radio-button>
-          <el-radio-button :value="300">最近 5 分钟</el-radio-button>
-          <el-radio-button :value="600">最近 10 分钟</el-radio-button>
+          <el-radio-button :value="60">{{ $t('replay.last1') }}</el-radio-button>
+          <el-radio-button :value="300">{{ $t('replay.last5') }}</el-radio-button>
+          <el-radio-button :value="600">{{ $t('replay.last10') }}</el-radio-button>
         </el-radio-group>
-        <el-button type="primary" :disabled="msgs.length < 2" @click="start">{{ playing ? '暂停' : (idx > 0 && idx < msgs.length ? '继续' : '开始回放') }}</el-button>
+        <el-button type="primary" :disabled="msgs.length < 2" @click="start">{{ playing ? $t('replay.pause') : (idx > 0 && idx < msgs.length ? $t('replay.resume') : $t('replay.start')) }}</el-button>
         <el-select :model-value="speed" style="width:90px" @update:model-value="changeSpeed">
           <el-option label="1x" :value="1" /><el-option label="4x" :value="4" />
           <el-option label="16x" :value="16" /><el-option label="64x" :value="64" />
         </el-select>
-        <el-button type="danger" @click="stop">停止</el-button>
+        <el-button type="danger" @click="stop">{{ $t('replay.stop') }}</el-button>
       </div>
     </div>
 
@@ -25,10 +25,10 @@
     <el-card shadow="never" class="table-card" style="margin-top:12px">
       <el-slider v-model="progress" :min="0" :max="100" :step="0.1" @input="seek" />
       <div class="mr-stats">
-        <span>虚拟时间：{{ virtualTime }}</span>
-        <span>进度：{{ progress.toFixed(1) }}%</span>
-        <span>已应用：{{ idx }} / {{ msgs.length }} 条</span>
-        <span>状态：{{ statusText }}</span>
+        <span>{{ $t('replay.virtualTime') }}：{{ virtualTime }}</span>
+        <span>{{ $t('replay.progress') }}：{{ progress.toFixed(1) }}%</span>
+        <span>{{ $t('replay.applied') }}：{{ idx }} / {{ msgs.length }}</span>
+        <span>{{ $t('replay.status') }}：{{ $t(statusKey, { n: statusN }) }}</span>
       </div>
     </el-card>
   </div>
@@ -36,9 +36,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as Cesium from 'cesium'
 import 'cesium/Build/Cesium/Widgets/widgets.css'
 import { CESIUM_CONFIG } from '@/config/cesiumConfig.js'
+
+const { t } = useI18n()
 
 const REALTIME = 'http://localhost:8090'
 const windowSec = ref(60)
@@ -47,7 +50,9 @@ const idx = ref(0)
 const progress = ref(0)
 const speed = ref(16)
 const playing = ref(false)
-const statusText = ref('未加载')
+// 回放状态文案：存 i18n key + 可选参数 n，模板处 $t 渲染（语言切换即时生效）
+const statusKey = ref('replay.st.notLoaded')
+const statusN = ref(0)
 
 const mapEl = ref(null)
 let viewer = null
@@ -126,8 +131,9 @@ async function loadHistory() {
     msgs.value = list
     idx.value = 0
     progress.value = 0
-    statusText.value = `已加载 ${list.length} 条`
-  } catch (e) { statusText.value = '历史加载失败' }
+    statusN.value = list.length
+    statusKey.value = 'replay.st.loaded'
+  } catch (e) { statusKey.value = 'replay.st.loadFailed' }
 }
 
 function start() {
@@ -138,7 +144,7 @@ function start() {
   startVirtual = msgs.value[Math.max(0, idx.value - 1)].ts + 1
   pauseElapsed = 0
   if (!timer) timer = setInterval(tick, 60)
-  statusText.value = '回放中'
+  statusKey.value = 'replay.st.playing'
 }
 function tick() {
   if (!playing.value) return
@@ -150,10 +156,10 @@ function tick() {
     idx.value++
   }
   progress.value = Math.min(100, ((virtual - first) / span) * 100)
-  if (idx.value >= msgs.value.length) { playing.value = false; pauseElapsed += span; statusText.value = '回放完成' }
+  if (idx.value >= msgs.value.length) { playing.value = false; pauseElapsed += span; statusKey.value = 'replay.st.done' }
 }
-function pause() { playing.value = false; pauseElapsed += (performance.now() - startReal) * speed.value; startReal = performance.now(); statusText.value = '已暂停' }
-function resume() { playing.value = true; startReal = performance.now(); statusText.value = '回放中' }
+function pause() { playing.value = false; pauseElapsed += (performance.now() - startReal) * speed.value; startReal = performance.now(); statusKey.value = 'replay.st.paused' }
+function resume() { playing.value = true; startReal = performance.now(); statusKey.value = 'replay.st.playing' }
 function changeSpeed(v) {
   if (playing.value) {
     pauseElapsed += (performance.now() - startReal) * speed.value
@@ -178,7 +184,7 @@ function stop() {
   pauseElapsed = 0
   if (timer) { clearInterval(timer); timer = null }
   snPoints.forEach(p => { p.show = false })
-  statusText.value = '未加载'
+  statusKey.value = 'replay.st.notLoaded'
 }
 
 onMounted(() => {

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/uav-ams/uav-realtime/internal/bridge"
 	"github.com/uav-ams/uav-realtime/internal/config"
 	"github.com/uav-ams/uav-realtime/internal/kafka"
 	"github.com/uav-ams/uav-realtime/internal/mqtt"
@@ -67,6 +68,23 @@ func main() {
 	// --- Kafka Alarm Consumer -> WS push ---
 	go kafka.StartAlarmConsumer(ctx, cfg.Kafka.Brokers, wsServer)
 	log.Println("[Kafka] Alarm->WS consumer started")
+
+	// --- 计划指令桥：Kafka uav.plan.cmd -> MQTT uav/{sn}/cmd（flight-plan 下发，仿真器执行）---
+	go bridge.StartCmdBridge(ctx, cfg.Kafka.Brokers, mqttClient)
+	log.Println("[Kafka] Plan cmd bridge started")
+
+	// --- 生命周期回流：遥测相位边沿（起飞/降落） -> Kafka uav.plan.lifecycle ---
+	lifecycle := bridge.NewLifecyclePublisher(cfg.Kafka.Brokers)
+	defer lifecycle.Close()
+	mqttClient.OnTelemetry(func(t *mqtt.Telemetry) {
+		lifecycle.OnTelemetry(bridge.Telemetry{
+			DeviceSN:     t.DeviceSN,
+			FlightPhase:  t.FlightPhase,
+			FlightPlanID: t.FlightPlanID,
+			Timestamp:    t.Timestamp,
+		})
+	})
+	log.Println("[Kafka] Telemetry lifecycle edge detector ready")
 
 	// --- 最后启动 MQTT（带重试，连上后立即开始接收数据）---
 	go mqttClient.Start(ctx)

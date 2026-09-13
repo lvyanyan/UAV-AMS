@@ -2,7 +2,6 @@ package kafka
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"time"
 
@@ -47,13 +46,8 @@ func consumeTopic(ctx context.Context, brokers []string, topic string, wsServer 
 				continue
 			}
 
-			// 封装为统一 WebSocket 消息格式
-			wsMsg := map[string]interface{}{
-				"type":  topic,
-				"data":  json.RawMessage(msg.Value),
-				"ts":    time.Now().UnixMilli(),
-			}
-			wsServer.BroadcastJSON(wsMsg)
+			// 封装为统一 WebSocket 消息格式（按客户端订阅条件过滤后推送）
+			wsServer.BroadcastEvent(topic, msg.Value)
 		}
 	}
 }

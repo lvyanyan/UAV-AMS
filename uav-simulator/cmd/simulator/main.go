@@ -61,9 +61,14 @@ func main() {
 	}
 
 	// 真实飞行流程场景：已登记无人机执行已审批飞行计划（与 deploy/sql 种子数据对应）
-	sim.CreateRealFlowFleet(drone.DefaultRealMissions)
+	// autoStart=false 时启动后待命 IDLE，等待平台放行+起飞指令受控起飞
+	sim.CreateRealFlowFleet(drone.DefaultRealMissions, cfg.Realflow.AutoStart)
 	totalDrones += len(drone.DefaultRealMissions)
-	log.Printf("📋 加载场景: 真实飞行流程 → %d 架已登记无人机执行已审批计划", len(drone.DefaultRealMissions))
+	if cfg.Realflow.AutoStart {
+		log.Printf("📋 加载场景: 真实飞行流程 → %d 架已登记无人机（autoStart：启动即起飞轮换）", len(drone.DefaultRealMissions))
+	} else {
+		log.Printf("📋 加载场景: 真实飞行流程 → %d 架已登记无人机（受控模式：待命等待平台 TAKEOFF 指令）", len(drone.DefaultRealMissions))
+	}
 	log.Printf("✅ 共创建 %d 架仿真无人机", totalDrones)
 
 	// 连接 MQTT
@@ -74,6 +79,13 @@ func main() {
 		Password: cfg.MQTT.Password,
 		QoS:      cfg.MQTT.QoS,
 		Retained: cfg.MQTT.Retained,
+	})
+
+	// 订阅平台指令 uav/+/cmd（TAKEOFF/RTL/LAND/ABORT），分发到仿真引擎
+	// 注意：必须先注册再 Connect（订阅挂在 OnConnect 回调，连接建立时即生效）
+	pub.OnCommand(func(sn, action, planCode string) {
+		result := sim.ExecuteCommand(sn, action, planCode)
+		log.Printf("📩 指令[%s] sn=%s plan=%s → %s", action, sn, planCode, result)
 	})
 
 	if err := pub.Connect(); err != nil {
@@ -130,6 +142,16 @@ func runSimulationLoop(ctx context.Context, sim *drone.Simulator, pub *mqtt.Publ
 			// 仿真时钟推进
 			telemetryList := sim.Tick(dt)
 			telemetryBuffer = append(telemetryBuffer, telemetryList...)
+
+			// 飞行事件（起飞离地/降落完成/紧急降落）经 MQTT uav/{sn}/event 发布
+			for _, ev := range sim.DrainFlightEvents() {
+				if pub.IsConnected() {
+					_ = pub.PublishEvent(ev.SN, ev.EventType, map[string]interface{}{
+						"plan_code": ev.PlanCode,
+					})
+				}
+				log.Printf("📣 事件 %s | sn=%s | plan=%s", ev.EventType, ev.SN, ev.PlanCode)
+			}
 
 		case <-telemetryTicker.C:
 			// 批量发布遥测

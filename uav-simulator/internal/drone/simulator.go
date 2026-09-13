@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,6 +19,10 @@ type Simulator struct {
 
 	// 遥测发送周期（秒），由 TelemetryRateHz 换算
 	telemetryPeriod float64
+
+	// 飞行事件队列（起飞/降落完成/紧急），由主循环排空后经 MQTT 发布
+	muEvents      sync.Mutex
+	pendingEvents []FlightEvent
 
 	// 统计
 	stats SimulatorStats
@@ -84,6 +89,7 @@ func (s *Simulator) CreateDroneFleet(count int, modelPrefix string, centerLat, c
 // 返回本次需要发送遥测的无人机列表
 func (s *Simulator) Tick(deltaTime float64) []Telemetry {
 	var telemetryList []Telemetry
+	var eventList []FlightEvent
 
 	flyingCount := 0
 	violationCount := 0
@@ -116,11 +122,20 @@ func (s *Simulator) Tick(deltaTime float64) []Telemetry {
 			s.handleLanding(d, deltaTime)
 
 		case PhaseLanded:
-			s.handleLanded(d)
+			s.handleLanded(d, deltaTime)
+
+		case PhaseEmergency:
+			s.handleEmergency(d, deltaTime)
+			flyingCount++
 		}
 
 		if d.violation != ViolationNone {
 			violationCount++
+		}
+
+		// 聚合本次推进产生的飞行事件（起飞离地/降落完成/紧急降落）
+		if evts := d.DrainEvents(); len(evts) > 0 {
+			eventList = append(eventList, evts...)
 		}
 
 		d.Unlock()
@@ -139,7 +154,77 @@ func (s *Simulator) Tick(deltaTime float64) []Telemetry {
 	s.stats.FlyingDrones = flyingCount
 	s.stats.ViolationCount = violationCount
 
+	// 事件先入队，遥测后再统一交给调用方
+	s.muEvents.Lock()
+	s.pendingEvents = append(s.pendingEvents, eventList...)
+	s.muEvents.Unlock()
+
 	return telemetryList
+}
+
+// DrainFlightEvents 取走累计的飞行事件（起飞/降落/紧急），由主循环经 MQTT uav/{sn}/event 发布
+func (s *Simulator) DrainFlightEvents() []FlightEvent {
+	s.muEvents.Lock()
+	defer s.muEvents.Unlock()
+	if len(s.pendingEvents) == 0 {
+		return nil
+	}
+	evts := s.pendingEvents
+	s.pendingEvents = nil
+	return evts
+}
+
+// ExecuteCommand 处理平台指令（uav/{sn}/cmd）。
+// 返回执行结果描述（用于日志）。指令契约：TAKEOFF/RTL/LAND/ABORT。
+func (s *Simulator) ExecuteCommand(sn, action, planCode string) string {
+	d, ok := s.drones[sn]
+	if !ok {
+		return "unknown drone " + sn
+	}
+
+	d.Lock()
+	defer d.Unlock()
+
+	switch action {
+	case "TAKEOFF":
+		if !d.IsRealFlowDrone() {
+			return sn + " 非真实流程机，忽略受控起飞"
+		}
+		if d.FlightPhase != PhaseIdle && d.FlightPhase != PhaseLanded {
+			return sn + " 不在地面，拒绝起飞指令"
+		}
+		if !d.BeginMissionByPlanCode(planCode) {
+			return sn + " 无匹配计划 " + planCode + " 或任务非待命状态"
+		}
+		return sn + " 受控起飞，计划 " + planCode
+
+	case "RTL":
+		if d.FlightPhase == PhaseIdle || d.FlightPhase == PhaseLanded || d.FlightPhase == PhaseLanding {
+			return sn + " 不在巡航/返航状态，忽略 RTL"
+		}
+		d.ForceRTL("platform RTL")
+		return sn + " 指令返航"
+
+	case "LAND":
+		if d.FlightPhase == PhaseIdle || d.FlightPhase == PhaseLanded {
+			return sn + " 已在地面，忽略 LAND"
+		}
+		// 原地降落
+		d.FlightPhase = PhaseLanding
+		d.SpeedMs = 0
+		return sn + " 原地降落"
+
+	case "ABORT":
+		if d.FlightPhase == PhaseFlying || d.FlightPhase == PhaseReturning || d.FlightPhase == PhaseTakeoff {
+			// 紧急场景：原地悬停后快速降落
+			d.BeginEmergency()
+			return sn + " 紧急中止（EMERGENCY：悬停后快速降落）"
+		}
+		return sn + " 不在飞，忽略 ABORT"
+
+	default:
+		return sn + " 未知指令 " + action
+	}
 }
 
 // GetDronesForHeartbeat 获取需要发送心跳的无人机 (所有非Idle的)
@@ -176,11 +261,16 @@ func (s *Simulator) GetDrone(sn string) (*Drone, bool) {
 	return d, ok
 }
 
-// handleIdle 待命状态 → 真实流程机按绑定计划重飞；其余随机起飞
+// handleIdle 待命状态：
+//   真实流程机 autoStart=true（旧模式）→ 按绑定计划轮换重飞；
+//   真实流程机 autoStart=false（受控）→ 原地待命，等待平台 TAKEOFF 指令；
+//   其余压测机随机起飞。
 func (s *Simulator) handleIdle(d *Drone) {
 	if len(d.realMissions) > 0 {
-		d.startNextRealMission()
-		return
+		if d.realAutoStart {
+			d.startNextRealMission()
+		}
+		return // 受控模式下待命，不起飞
 	}
 	// 30% 概率起飞 (每秒)
 	if s.rng.Float64() < 0.3 {
@@ -193,11 +283,30 @@ func (s *Simulator) handleIdle(d *Drone) {
 	}
 }
 
-// handleTakeoff 起飞阶段 → 上升到巡航高度
+// handleTakeoff 起飞阶段（细分两段）：
+//   1) 旋翼启动 1.5s：speed=0，电量微降，仍在地面；
+//   2) 垂直爬升至首航点高度 → 离地即发布 TAKEOFF 事件，转 FLYING 前按航点推进。
 func (s *Simulator) handleTakeoff(d *Drone, dt float64) {
+	// --- 旋翼启动段 ---
+	if d.spinupSec < rotorSpinupSec {
+		d.spinupSec += dt
+		d.SpeedMs = 0
+		d.BatteryPct -= 0.02 * dt // 旋翼启动耗电
+		if d.spinupSec < rotorSpinupSec {
+			return
+		}
+		// 启动完成 → 离地爬升开始，发布离地事件
+		if !d.takeoffEventDone {
+			d.takeoffEventDone = true
+			d.pushEvent("TAKEOFF", d.flightPlanID)
+		}
+	}
+
+	// --- 垂直爬升段 ---
 	targetAlt := d.waypoints[0].AltM
 	climbRate := 5.0 // 5 m/s 爬升率
 	d.Position.AltM += climbRate * dt
+	d.SpeedMs = climbRate
 
 	if d.Position.AltM >= targetAlt {
 		d.Position.AltM = targetAlt
@@ -207,6 +316,26 @@ func (s *Simulator) handleTakeoff(d *Drone, dt float64) {
 
 	// 电量消耗
 	d.BatteryPct -= 0.01 * dt
+}
+
+// handleEmergency 紧急中止（收到 ABORT 且在飞）：原地悬停 2s → 快速降落（1.5x 降落速度）→ 落地发 FLIGHT_ABORTED
+func (s *Simulator) handleEmergency(d *Drone, dt float64) {
+	if d.emergencyHoverSec < emergencyHoverSec {
+		d.emergencyHoverSec += dt
+		d.SpeedMs = 0 // 原地悬停
+		return
+	}
+	// 快速降落（1.5 倍标称降落速度）
+	d.SpeedMs = landingRateMs * 1.5
+	d.Position.AltM -= d.SpeedMs * dt
+	if d.Position.AltM <= 0 {
+		d.Position.AltM = 0
+		d.Position = d.homePos
+		d.FlightPhase = PhaseLanded
+		d.landedElapsed = 0
+		d.violation = ViolationNone
+		d.pushEvent("FLIGHT_ABORTED", d.flightPlanID)
+	}
 }
 
 // handleFlying 飞行中 → 沿航点移动
@@ -297,24 +426,42 @@ func (s *Simulator) handleReturning(d *Drone, dt float64) {
 	d.BatteryPct -= 0.005 * dt
 }
 
+// 起飞/紧急/降落过程常量
+const (
+	rotorSpinupSec    = 1.5 // 起飞前旋翼启动时长（秒）
+	emergencyHoverSec = 2.0 // 紧急中止原地悬停时长（秒）
+	landingRateMs     = 3.0 // 标称降落下降率 (m/s)
+	landedDwellSec    = 6.0 // 降落后保持 LANDED 相位时长（秒，确保遥测采样到降落边沿）
+)
+
 // handleLanding 降落中
 func (s *Simulator) handleLanding(d *Drone, dt float64) {
-	d.Position.AltM -= 3.0 * dt
+	d.SpeedMs = landingRateMs
+	d.Position.AltM -= landingRateMs * dt
 	if d.Position.AltM <= 0 {
 		d.Position.AltM = 0
 		d.Position = d.homePos
 		d.FlightPhase = PhaseLanded
+		d.landedElapsed = 0
 		d.violation = ViolationNone
+		// 降落完成：发布 FLIGHT_COMPLETED 事件；受控模式下任务标记 DONE，不再自动重飞
+		d.pushEvent("FLIGHT_COMPLETED", d.flightPlanID)
+		d.MarkMissionDone()
 	}
 }
 
-// handleLanded 已降落 → 充电重置
-func (s *Simulator) handleLanded(d *Drone) {
+// handleLanded 已降落 → 保持 LANDED 数秒（保证遥测采到降落边沿）→ 充电重置回 IDLE
+func (s *Simulator) handleLanded(d *Drone, dt float64) {
+	d.SpeedMs = 0
+	d.landedElapsed += dt
+	if d.landedElapsed < landedDwellSec {
+		return
+	}
 	// 自动充电重置
 	d.BatteryPct = 95.0 + d.rng.Float64()*5.0
 	d.SignalRSSI = -30 - d.rng.Intn(40)
-
-	// 短暂休息后重新变为 Idle
+	d.landedElapsed = 0
+	// 回到 IDLE：受控模式原地待命等新指令；autoStart 旧模式/压测机自行再次起飞
 	d.FlightPhase = PhaseIdle
 }
 

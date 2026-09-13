@@ -1,16 +1,16 @@
 <template>
   <div class="page-container">
-    <PageHeader title="审计日志" :subtitle="`关键操作留痕（只读，最近 200 条）· 共 ${ total } 条`" />
+    <PageHeader :title="$t('system.audit.title')" :subtitle="$t('system.audit.subtitle', { total })" />
     <el-card shadow="never" class="table-card">
       <el-table :data="paged" border stripe v-loading="loading">
-        <el-table-column prop="username" label="操作用户" width="130" />
-        <el-table-column prop="action" label="操作" width="180" />
-        <el-table-column prop="target" label="操作对象" min-width="200" />
+        <el-table-column prop="username" :label="$t('system.audit.user')" width="130" />
+        <el-table-column prop="action" :label="$t('system.audit.action')" width="180" />
+        <el-table-column prop="target" :label="$t('system.audit.target')" min-width="200" />
         <el-table-column prop="ip" label="IP" width="150" />
-        <el-table-column prop="createTime" label="时间" width="170">
+        <el-table-column prop="createTime" :label="$t('common.time')" width="170">
           <template #default="{ row }">{{ fmtDateTime(row.createTime) }}</template>
         </el-table-column>
-        <template #empty><el-empty description="暂无审计日志" /></template>
+        <template #empty><el-empty :description="$t('system.audit.empty')" /></template>
       </el-table>
       <TablePagination v-model:page="page" v-model:size="size" :total="total" layout="total, prev, pager, next" />
     </el-card>

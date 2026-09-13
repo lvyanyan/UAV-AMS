@@ -14,8 +14,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 系统管理只读查询接口（用户 / 角色 / 审计日志 / 违规台账）
- * 密码等敏感字段不下发；写操作后续按 RBAC 权限补齐
+ * 系统管理只读查询接口（审计日志）
+ * 用户/角色的分页查询与写操作已升级至 SysUserController / SysRoleController（RBAC），
+ * 本类保留 /api/audit/list 供审计日志页使用
  */
 @RestController
 @RequestMapping("/api")
@@ -30,42 +31,6 @@ public class SysQueryController {
 
     /** 统一时间出口：Timestamp → "yyyy-MM-dd HH:mm:ss" */
     private static String fmt(Timestamp t) { return t == null ? null : TS.format(t.toLocalDateTime()); }
-
-    @GetMapping("/user/list")
-    public R<List<Map<String, Object>>> userList() {
-        List<Map<String, Object>> out = new ArrayList<>();
-        jdbc.query("select id, username, real_name, phone, email, role_code, enabled, create_time "
-                + "from sys_user order by id", rs -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", rs.getLong("id"));
-            m.put("username", rs.getString("username"));
-            m.put("realName", rs.getString("real_name"));
-            m.put("email", rs.getString("email"));
-            m.put("phone", rs.getString("phone"));
-            m.put("roleName", rs.getString("role_code"));
-            m.put("status", rs.getBoolean("enabled") ? "ACTIVE" : "DISABLED");
-            Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", fmt(t));
-            out.add(m);
-        });
-        return R.ok(out);
-    }
-
-    @GetMapping("/role/list")
-    public R<List<Map<String, Object>>> roleList() {
-        List<Map<String, Object>> out = new ArrayList<>();
-        jdbc.query("select id, role_code, role_name, description, create_time from sys_role order by id", rs -> {
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", rs.getLong("id"));
-            m.put("roleCode", rs.getString("role_code"));
-            m.put("roleName", rs.getString("role_name"));
-            m.put("description", rs.getString("description"));
-            Timestamp t = rs.getTimestamp("create_time");
-            m.put("createTime", fmt(t));
-            out.add(m);
-        });
-        return R.ok(out);
-    }
 
     @GetMapping("/audit/list")
     public R<List<Map<String, Object>>> auditList() {

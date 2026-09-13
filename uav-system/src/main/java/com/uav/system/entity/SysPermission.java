@@ -3,6 +3,9 @@ package com.uav.system.entity;
 import com.baomidou.mybatisplus.annotation.*;
 import java.time.LocalDateTime;
 
+/**
+ * 权限实体：perm_type 仅允许 MENU（菜单）/ BUTTON（按钮/操作），perm_code 统一 域:资源:操作 风格
+ */
 @TableName("sys_permission")
 public class SysPermission {
     @TableId(type = IdType.AUTO)
@@ -14,8 +17,7 @@ public class SysPermission {
     private String path;
     private String icon;
     private Integer sortOrder;
-    @TableField(fill = FieldFill.INSERT)
-    private LocalDateTime createTime;
+    private LocalDateTime createdAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -33,6 +35,6 @@ public class SysPermission {
     public void setIcon(String icon) { this.icon = icon; }
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
-    public LocalDateTime getCreateTime() { return createTime; }
-    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

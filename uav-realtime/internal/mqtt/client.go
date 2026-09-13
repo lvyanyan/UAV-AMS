@@ -3,6 +3,7 @@ package mqtt
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"time"
 
@@ -131,6 +132,16 @@ func (c *Client) onTelemetryMessage(_ mqtt.Client, msg mqtt.Message) {
 // IsConnected 检查连接状态
 func (c *Client) IsConnected() bool {
 	return c.connected && c.client != nil && c.client.IsConnected()
+}
+
+// Publish 向指定主题发布原始 payload（供指令桥 Kafka→MQTT 转发使用）
+func (c *Client) Publish(topic string, payload []byte) error {
+	if c.client == nil || !c.client.IsConnected() {
+		return fmt.Errorf("MQTT 未连接，无法发布 %s", topic)
+	}
+	token := c.client.Publish(topic, c.cfg.QoS, false, payload)
+	token.Wait()
+	return token.Error()
 }
 
 // Disconnect 断开连接

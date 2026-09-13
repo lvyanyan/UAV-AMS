@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { i18n } from '@/locales'
 
 const api = axios.create({
   baseURL: '/api',
@@ -17,7 +18,7 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   response => response.data,
   error => {
-    const msg = error.response?.data?.message || error.message || '请求失败'
+    const msg = error.response?.data?.message || error.message || i18n.global.t('common.requestFailed')
     ElMessage.error(msg)
     if (error.response?.status === 401) {
       localStorage.removeItem('token')

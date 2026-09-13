@@ -2,12 +2,12 @@
   <div class="page-container">
     <div class="page-header">
       <div>
-        <h2 class="page-title">字典管理</h2>
-        <div class="page-subtitle">枚举值 → 中文标签统一维护，按业务分组 · 修改后全站即时生效</div>
+        <h2 class="page-title">{{ $t('dictPage.title') }}</h2>
+        <div class="page-subtitle">{{ $t('dictPage.subtitle') }}</div>
       </div>
       <div class="header-actions">
-        <el-button type="primary" @click="showCreate">新增字典项</el-button>
-        <el-button @click="reload">刷新</el-button>
+        <el-button type="primary" @click="showCreate">{{ $t('dictPage.create') }}</el-button>
+        <el-button @click="reload">{{ $t('common.refresh') }}</el-button>
       </div>
     </div>
 
@@ -35,16 +35,16 @@
           <span class="dict-type-code" style="margin-left:8px">{{ currentType }}</span>
         </template>
         <el-table :data="paged" border stripe v-loading="loading">
-          <el-table-column prop="value" label="值" width="200" />
-          <el-table-column prop="label" label="标签" min-width="180" />
-          <el-table-column prop="sort" label="排序" width="90" />
-          <el-table-column label="操作" width="150">
+          <el-table-column prop="value" :label="$t('dictPage.value')" width="200" />
+          <el-table-column prop="label" :label="$t('dictPage.label')" min-width="180" />
+          <el-table-column prop="sort" :label="$t('dictPage.sort')" width="90" />
+          <el-table-column :label="$t('common.operation')" width="150">
             <template #default="{ row }">
-              <el-button size="small" @click="editItem(row)">编辑</el-button>
-              <el-button size="small" type="danger" @click="removeItem(row)">删除</el-button>
+              <el-button size="small" @click="editItem(row)">{{ $t('common.edit') }}</el-button>
+              <el-button size="small" type="danger" @click="removeItem(row)">{{ $t('common.delete') }}</el-button>
             </template>
           </el-table-column>
-          <template #empty><el-empty description="选择左侧字典类型，或新增字典项" /></template>
+          <template #empty><el-empty :description="$t('dictPage.empty')" /></template>
         </el-table>
         <div class="table-footer">
           <el-pagination v-model:current-page="page" v-model:page-size="size" :total="total"
@@ -53,23 +53,23 @@
       </el-card>
     </div>
 
-    <el-dialog v-model="dialogVisible" :title="editing.id ? '编辑字典项' : '新增字典项'" width="440px">
-      <el-form :model="form" label-width="80px">
-        <el-form-item label="字典类型">
+    <el-dialog v-model="dialogVisible" :title="editing.id ? $t('dictPage.edit') : $t('dictPage.create')" width="440px">
+      <el-form :model="form" :label-width="labelWidth">
+        <el-form-item :label="$t('dictPage.type')">
           <el-select v-if="!editing.id" v-model="form.dictType" style="width:100%" filterable allow-create>
             <el-option v-for="t in meta" :key="t.dictType" :label="`${t.businessGroup} / ${t.dictName} (${t.dictType})`" :value="t.dictType" />
           </el-select>
           <el-input v-else v-model="form.dictType" disabled />
         </el-form-item>
-        <el-form-item label="值">
-          <el-input v-model="form.dictValue" :disabled="!!editing.id" placeholder="数据库存储的英文值，如 CONTROL" />
+        <el-form-item :label="$t('dictPage.value')">
+          <el-input v-model="form.dictValue" :disabled="!!editing.id" :placeholder="$t('dictPage.valuePh')" />
         </el-form-item>
-        <el-form-item label="标签"><el-input v-model="form.dictLabel" placeholder="展示用中文名，如 管制区" /></el-form-item>
-        <el-form-item label="排序"><el-input-number v-model="form.sortOrder" :min="0" style="width:100%" /></el-form-item>
+        <el-form-item :label="$t('dictPage.label')"><el-input v-model="form.dictLabel" :placeholder="$t('dictPage.labelPh')" /></el-form-item>
+        <el-form-item :label="$t('dictPage.sort')"><el-input-number v-model="form.sortOrder" :min="0" style="width:100%" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible=false">取消</el-button>
-        <el-button type="primary" @click="save">保存</el-button>
+        <el-button @click="dialogVisible=false">{{ $t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="save">{{ $t('common.save') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -77,10 +77,16 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { dictApi, type DictItem } from '@/api/dict'
 import { usePaging } from '@/composables/usePaging'
 import { dictCache, loadDicts } from '@/composables/useDict'
+import { locale } from '@/locales'
+
+const { t } = useI18n()
+// 表单标签宽度：中英文标签长度不同，英文适当放宽
+const labelWidth = computed(() => (locale.value === 'en' ? '110px' : '80px'))
 
 interface DictTypeMeta { dictType: string; dictName: string; businessGroup: string; sort?: number }
 
@@ -142,7 +148,7 @@ async function save() {
   } else {
     await dictApi.create({ dictType: form.value.dictType, dictValue: form.value.dictValue, dictLabel: form.value.dictLabel, sortOrder: form.value.sortOrder })
   }
-  ElMessage.success('已保存')
+  ElMessage.success(t('common.saveSuccess'))
   dialogVisible.value = false
   reload()
 }
@@ -151,9 +157,9 @@ function editingDictId() {
   return hit?.id ?? 0
 }
 async function removeItem(row: DictItem) {
-  await ElMessageBox.confirm(`删除字典项 ${row.value}（${row.label}）？`, '确认', { type: 'warning' })
+  await ElMessageBox.confirm(t('dictPage.deleteConfirm', { value: row.value, label: row.label }), t('common.confirmTitle'), { type: 'warning' })
   if (row.id) await dictApi.remove(row.id)
-  ElMessage.success('已删除')
+  ElMessage.success(t('common.deleteSuccess'))
   reload()
 }
 </script>

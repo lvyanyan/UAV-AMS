@@ -24,6 +24,12 @@ public class FlightPlan {
     private LocalDateTime submitTime;
     private Long militaryApprovalId;
     private Boolean militaryApproved;
+    /** 实际起飞时间（仿真器起飞遥测回流后写入） */
+    private LocalDateTime actualStart;
+    /** 实际降落时间（LANDED 边沿事件回流后写入） */
+    private LocalDateTime actualEnd;
+    /** 起飞指令下发时间（仅记录，鲁棒排查用） */
+    private LocalDateTime cmdSentAt;
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createTime;
     @TableField(fill = FieldFill.INSERT_UPDATE)
@@ -65,6 +71,12 @@ public class FlightPlan {
     public void setMilitaryApprovalId(Long militaryApprovalId) { this.militaryApprovalId = militaryApprovalId; }
     public Boolean getMilitaryApproved() { return militaryApproved; }
     public void setMilitaryApproved(Boolean militaryApproved) { this.militaryApproved = militaryApproved; }
+    public LocalDateTime getActualStart() { return actualStart; }
+    public void setActualStart(LocalDateTime actualStart) { this.actualStart = actualStart; }
+    public LocalDateTime getActualEnd() { return actualEnd; }
+    public void setActualEnd(LocalDateTime actualEnd) { this.actualEnd = actualEnd; }
+    public LocalDateTime getCmdSentAt() { return cmdSentAt; }
+    public void setCmdSentAt(LocalDateTime cmdSentAt) { this.cmdSentAt = cmdSentAt; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }

@@ -13,6 +13,7 @@
 - **冲突检测与解脱**：`ConflictDetector` 实时检测冲突对，预测包络 + 解脱策略引擎（高度 / 航向 / 速度）
 - **飞行计划多级审批（Flowable BPMN）**：三级串行审批建模为 BPMN 流程（任务节点 / 排他网关 / 状态同步监听器），REST 契约与旧状态机完全兼容，军民直批自动终止在途实例
 - **军民协调**：TOTP 双因子认证 + 一键批准流程
+- **外部对接（体检中心 + UOM）**：体检中心定时拉取体检结果自动落库，执照/体检到期自动告警并拦截放行；实名登记审批通过即上报民航局 UOM 平台（Webhook 出站 + 失败重试 + `external_integration_log` 全程留痕），内置 mock 端点可跑通全链路演示
 - **完整工程化**：docker-compose 一键基础设施（Flink 走独立 profile）、start-all.bat 全栈启停、RBAC 7 角色 + JWT + MFA、中英双语
 
 ## 架构
@@ -116,6 +117,54 @@ docker exec uav-flink-jobmanager flink run -c com.uav.flinkcep.CepAlarmJob /opt/
 - 军民直批/直撤自动终止在途流程实例，不产生悬挂任务
 - 首次启动自动建 `ACT_*` 表（`flowable.database-schema-update: true`）
 
+## 外部对接（体检中心 + UOM）
+
+### 体检中心对接（uav-pilot）
+定时拉取模式：每 5 分钟（`uav.medical-center.cron`）从体检中心 API 拉取体检结果，按身份证号（缺失时回退姓名）匹配飞手，`source=CENTER` 幂等落库到 `uav_pilot_medical`（同飞手同体检日期去重）。
+
+```yaml
+uav:
+  medical-center:
+    enabled: true
+    base-url: http://localhost:8087/api/pilot/mock-center   # 生产替换为真实体检中心地址
+    api-key: dev-key
+    cron: "0 */5 * * * *"
+```
+
+对端契约：`GET {base-url}/exams`（请求头 `X-API-KEY`）→ `{code:0, data:[{idNumber, pilotName, examDate, examOrg, examResult: PASS|FAIL, expireDate, reportUrl}]}`。内置 mock 端点按库内飞手生成确定性体检目录（1 号飞手体检过期，便于演示告警/放行拦截）。
+
+配套能力：
+- **资质到期告警**（uav-alarm-engine，每 10 分钟）：执照/体检过期 → SERIOUS、30 天内到期 → GENERAL，复检/换证后自动关闭；告警 `drone_sn` 存 `PILOT-{id}`；`POST /api/alarm/qualification/check` 手动触发
+- **放行检查第 6 项**（uav-flight-plan）：`GET /api/pilot/{id}/medical/valid`——体检过期/不合格 fail-closed 拒绝放行，无体检记录 fail-open 不阻断存量
+
+### UOM 上报（uav-registry）
+实名登记 Webhook 出站上报民航局 UOM 平台：审批通过自动上报 + 单条手动 + 批量补报，失败自动重试（每分钟，`max-retry` 上限 5），全程写 `external_integration_log` 留痕；`uav_owner`/`uav_registration` 的 `uom_status`（REPORTED/FAILED/空）在登记页展示。
+
+```yaml
+uav:
+  uom:
+    enabled: true
+    base-url: http://localhost:8086/api/registry/mock-uom   # 生产替换为 UOM 真实网关地址
+    app-id: uav-ams-demo
+    app-secret: dev-secret
+    max-retry: 5
+```
+
+对端契约：`POST {base-url}/registrations`（请求头 `X-UOM-APP-ID` / `X-UOM-APP-SECRET`）→ HTTP 2xx + `{code:0, data:{receiptNo}}` 视为受理成功。内置 mock 接收端跑通演示链路。
+
+接口一览：
+
+| 接口 | 说明 |
+|------|------|
+| `POST /api/pilot/medical-center/sync` | 手动触发一次体检中心同步 |
+| `GET  /api/pilot/{id}/medical/valid` | 体检有效性核验（放行检查用） |
+| `POST /api/alarm/qualification/check` | 手动触发资质到期检查 |
+| `PUT  /api/registry/owner/{id}/uom-report` | 手动上报单条所有人登记 |
+| `PUT  /api/registry/drone/{id}/uom-report` | 手动上报单条无人机登记 |
+| `POST /api/registry/uom/report-all` | 批量补报所有已通过未上报登记（幂等） |
+| `POST /api/registry/uom/retry` | 手动重试失败项 |
+| `GET  /api/registry/uom/logs?limit=50` | UOM 对接日志 |
+
 ## 百万级前端渲染压测
 
 完整报告见 [million-demo/REPORT.md](million-demo/REPORT.md)（含二进制协议定义、复现步骤与生产架构建议），关键数据：
@@ -150,3 +199,4 @@ docker exec uav-flink-jobmanager flink run -c com.uav.flinkcep.CepAlarmJob /opt/
 - [million-demo/REPORT.md](million-demo/REPORT.md) — 百万级渲染压测完整报告
 - [million-demo/README.md](million-demo/README.md) — 压测环境复现
 - [docs/UAV-AMS-Design-Doc.md](docs/UAV-AMS-Design-Doc.md) — 设计文档
+- [docs/PLAN_百万适配与UI升级.md](docs/PLAN_百万适配与UI升级.md) — 迭代任务书与实施记录（含外部对接验收记录）

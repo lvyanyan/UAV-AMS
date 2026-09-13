@@ -1,6 +1,14 @@
 server:
   port: 18080 # 前端 vite 代理 /api → 18080；勿改回 8080（与 wslrelay 端口冲突）
 
+uav:
+  jwt:
+    # 与 uav-system 保持同一密钥（生产环境用环境变量 UAV_JWT_SECRET 覆盖，长度>=32字符）
+    secret: ${UAV_JWT_SECRET:uav-ams-dev-secret-key-min-32-chars!!}
+  gateway:
+    # 网关鉴权白名单（Ant 风格，逗号分隔）：命中直接放行；其余一律校验 Bearer token
+    white-list: /api/auth/login,/api/dict/**,/actuator/**
+
 spring:
   application:
     name: uav-gateway

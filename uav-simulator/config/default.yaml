@@ -21,6 +21,10 @@ simulation:
   violation_prob: 0.02                # 违规概率 (~2%/秒/无人机)
   random_seed: 42                     # 随机种子 (相同种子产生相同行为)
 
+# ---- 真实流程机队 (REG-UAV-000x) ----
+realflow:
+  autoStart: false                    # false=启动后待命，等待平台 TAKEOFF 指令受控起飞；true=启动即起飞无限轮换(旧行为)
+
 # ---- 场景配置 ----
 scenarios:
   # 百万级压力测试场景

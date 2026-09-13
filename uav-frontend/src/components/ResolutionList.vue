@@ -1,13 +1,13 @@
 <template>
   <div class="panel-list">
-    <div v-if="resolutions.length === 0" class="empty">暂无解脱指令</div>
+    <div v-if="resolutions.length === 0" class="empty">{{ $t('resolution.none') }}</div>
     <div v-for="r in resolutions.slice(0, 50)" :key="r.timestamp" class="item">
       <div class="header">
         <span class="sn">{{ r.droneSn?.substring(0, 12) }}</span>
         <span class="strategy">{{ r.strategy }}</span>
       </div>
       <div class="body">
-        <span>参数: {{ r.parameter }}</span>
+        <span>{{ $t('resolution.param') }}: {{ r.parameter }}</span>
         <span class="reason">{{ r.reason }}</span>
       </div>
     </div>

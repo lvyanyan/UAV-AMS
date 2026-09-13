@@ -1,7 +1,9 @@
 package com.uav.system.controller;
 
 import com.uav.common.base.R;
+import com.uav.system.annotation.AuditLog;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -64,8 +66,10 @@ public class SysDictController {
         return R.ok(out);
     }
 
-    /** 新增字典项 */
+    /** 新增字典项（需要 system:dict:manage 权限） */
     @PostMapping
+    @PreAuthorize("hasAuthority('system:dict:manage')")
+    @AuditLog(action = "新增字典项", target = "字典管理")
     public R<String> create(@RequestBody Map<String, Object> body) {
         String type = str(body.get("dictType"));
         String value = str(body.get("dictValue"));
@@ -84,8 +88,10 @@ public class SysDictController {
         return R.ok("ok");
     }
 
-    /** 修改标签/排序 */
+    /** 修改标签/排序（需要 system:dict:manage 权限） */
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('system:dict:manage')")
+    @AuditLog(action = "修改字典项", target = "字典管理")
     public R<String> update(@PathVariable long id, @RequestBody Map<String, Object> body) {
         String label = str(body.get("dictLabel"));
         if (label == null) return R.fail("dictLabel 不能为空");
@@ -94,8 +100,10 @@ public class SysDictController {
         return R.ok("ok");
     }
 
-    /** 删除字典项 */
+    /** 删除字典项（需要 system:dict:manage 权限） */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('system:dict:manage')")
+    @AuditLog(action = "删除字典项", target = "字典管理")
     public R<String> delete(@PathVariable long id) {
         jdbc.update("delete from sys_dict where id = ?", id);
         return R.ok("ok");

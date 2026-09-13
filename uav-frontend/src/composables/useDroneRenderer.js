@@ -6,6 +6,7 @@
  * ★ updatePositions() 批量更新位置
  */
 import * as Cesium from 'cesium'
+import { i18n } from '@/locales'
 
 const IMG_PATHS = {
   NORMAL: '/images/drones/default-fusion.png',
@@ -23,7 +24,7 @@ function loadImage(url) {
     const img = new Image()
     img.crossOrigin = 'anonymous'
     img.onload = () => resolve(img)
-    img.onerror = () => reject(new Error('图片加载失败: ' + url))
+    img.onerror = () => reject(new Error(i18n.global.t('drone.imgLoadFailed', { url })))
     img.src = url
   })
 }

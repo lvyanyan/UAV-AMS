@@ -1,6 +1,6 @@
 <template>
   <div class="panel-list">
-    <div v-if="conflicts.length === 0" class="empty">暂无冲突</div>
+    <div v-if="conflicts.length === 0" class="empty">{{ $t('conflict.none') }}</div>
     <div v-for="c in conflicts.slice(0, 50)" :key="c.timestamp" class="item" :class="c.probability > 0.5 ? 'high' : 'low'">
       <div class="pair">
         <span class="sn">{{ c.droneA?.substring(0,10) }}</span>
@@ -8,8 +8,8 @@
         <span class="sn">{{ c.droneB?.substring(0,10) }}</span>
       </div>
       <div class="info">
-        <span>碰撞概率: {{ (c.probability * 100).toFixed(0) }}%</span>
-        <span>距: {{ c.minDistance?.toFixed(0) }}m</span>
+        <span>{{ $t('conflict.collisionProb') }}: {{ (c.probability * 100).toFixed(0) }}%</span>
+        <span>{{ $t('conflict.dist') }}: {{ c.minDistance?.toFixed(0) }}m</span>
         <span>TCPA: {{ c.timeToCPA?.toFixed(0) }}s</span>
       </div>
     </div>

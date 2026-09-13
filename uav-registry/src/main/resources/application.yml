@@ -14,6 +14,16 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
+uav:
+  uom:
+    # UOM（民航局无人驾驶航空器一体化综合监管服务平台）对接：实名登记 Webhook 上报
+    enabled: true
+    # 默认指向本服务内置 mock 接收端跑通演示链路；生产替换为 UOM 真实网关地址
+    base-url: http://localhost:8086/api/registry/mock-uom
+    app-id: ${UAV_UOM_APP_ID:uav-ams-demo}
+    app-secret: ${UAV_UOM_APP_SECRET:dev-secret}
+    max-retry: 5
+
 logging:
   level:
     com.uav.registry: DEBUG

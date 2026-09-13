@@ -22,6 +22,15 @@ public class InfraInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // 飞行闭环新增列（幂等迁移）：actual_start/actual_end 实际起降时间，cmd_sent_at 起飞指令下发时间
+        try {
+            jdbc.execute("ALTER TABLE flight_plan ADD COLUMN IF NOT EXISTS actual_start timestamp");
+            jdbc.execute("ALTER TABLE flight_plan ADD COLUMN IF NOT EXISTS actual_end timestamp");
+            jdbc.execute("ALTER TABLE flight_plan ADD COLUMN IF NOT EXISTS cmd_sent_at timestamp");
+        } catch (Exception e) {
+            log.warn("flight_plan 新列迁移失败（表可能尚未创建）: {}", e.getMessage());
+        }
+
         jdbc.execute("CREATE TABLE IF NOT EXISTS uav_airport ("
             + "id bigserial PRIMARY KEY, "
             + "airport_name varchar(128) NOT NULL, "
