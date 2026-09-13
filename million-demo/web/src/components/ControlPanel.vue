@@ -17,8 +17,8 @@
         <input
           type="range"
           min="10000"
-          max="1000000"
-          step="10000"
+          max="30000"
+          step="5000"
           v-model.number="localCount"
           class="slider"
           @change="onResize"
@@ -86,7 +86,7 @@ const props = defineProps({
 
 const emit = defineEmits(['reconnect', 'resize', 'set-decimate', 'toggle-debug-fps', 'set-full'])
 
-const localCount = ref(100000)
+const localCount = ref(10000)
 const localDecimate = ref(1)
 
 function onResize() {

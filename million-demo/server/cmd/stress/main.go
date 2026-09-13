@@ -26,6 +26,7 @@ func main() {
 	lon := flag.Float64("lon", 116.4074, "中心经度")
 	radius := flag.Float64("radius", 50.0, "活动半径 km")
 	full := flag.Bool("full", false, "全量广播模式：忽略视锥，每帧推全部原始点（100万×20B@5Hz≈100MB/s）")
+	maxCount := flag.Int("max-count", 0, "/resize 数量上限，0=不限制（线上演示防带宽打满时设置）")
 	flag.Parse()
 
 	var fleetPtr atomic.Pointer[fleet.Fleet]
@@ -74,6 +75,10 @@ func main() {
 		if err != nil || n <= 0 {
 			http.Error(w, "bad count", 400)
 			return
+		}
+		if *maxCount > 0 && n > *maxCount {
+			n = *maxCount
+			log.Printf("[fleet] 达到演示上限，钳制为 %d 架", n)
 		}
 		fleetPtr.Store(fleet.New(n, *lat, *lon, *radius))
 		log.Printf("[fleet] 重建为 %d 架", n)

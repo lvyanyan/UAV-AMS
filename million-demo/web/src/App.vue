@@ -30,7 +30,8 @@ import { useLodRenderer } from './composables/useLodRenderer.js'
 import { useBoundary } from './composables/useBoundary.js'
 import ControlPanel from './components/ControlPanel.vue'
 
-const WS_URL = 'ws://localhost:8099/stress'
+// 同源动态拼接：本地 dev 连 5173（vite 代理 /stress），线上经 Caddy 反代 /stress
+const WS_URL = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/stress'
 
 const cesiumContainer = ref(null)
 const viewerRef = shallowRef(null)
@@ -192,8 +193,12 @@ function onToggleDebugFps() {
 onMounted(async () => {
   await useC.initViewer(cesiumContainer.value)
 
-  // 加载行政区划边界（悬浮半空科技面板）
-  await boundary.loadBoundary('/GEOJSON/北京市_市.geojson')
+  // 加载行政区划边界（悬浮半空科技面板）——随 base 路径相对寻址；失败不阻断主链路
+  try {
+    await boundary.loadBoundary(import.meta.env.BASE_URL + 'GEOJSON/北京市_市.geojson')
+  } catch (e) {
+    console.warn('[demo] 行政区边界加载失败，跳过（不影响渲染与推流）', e)
+  }
 
   // 自定义相机点击 → 添加临时 label（业务演示）
   const v = viewerRef.value
