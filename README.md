@@ -3,6 +3,8 @@
 > 面向政府监管场景的低空空域数字化平台：**Java 微服务（11 个）+ Go 实时链路（2 个）+ Vue3 / Cesium 数字孪生大屏 + 微信小程序**。
 > 覆盖实名登记、飞行员资质、飞行计划多级审批、六维告警、多源轨迹融合、冲突检测、军民协调全业务链。
 
+**▶ 在线演示**：<https://www.lvyanyan.net/apps/uav-ams> —— 缩放规模模拟数据（3 万架 @5Hz，服务端视锥聚合）+ 引导演示动线（自动巡航 + 分段解说），可实测渲染帧率； million-demo 压测工具页见 [million-demo/](million-demo/)。
+
 ## 项目亮点
 
 - **百万级渲染压测验证**：自建 Go 仿真器推送 100 万架无人机 @5Hz（100MB/s 二进制帧），前端 Worker 抽稀 + 预分配渲染，实测 **~60FPS · rAF 102 · 0 丢帧**（详见 [million-demo/REPORT.md](million-demo/REPORT.md)）
